@@ -1,6 +1,7 @@
 #include "heap.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 typedef struct HeapNode
@@ -9,26 +10,34 @@ typedef struct HeapNode
 	const void *data;
 } HeapNode;
 
-typedef struct Heap
+typedef struct HeapImpl
 {
 	HeapNode *nodes;
 	int32_t capacity;
 	int32_t nextEmpty; // 1-based; N's kids = 2*N and 2*N+1; N's parent = N/2
-} Heap;
+} HeapImpl;
 
 ///////////// Internal utilities
 
 static const int32_t kHeapRootIndex = 1;
 
-static inline int32_t iHeapCurrentSize(Heap *heap)
+static inline int32_t iHeapCurrentSize(Heap heap)
 {
 	assert(NULL != heap);
 	return heap->nextEmpty - kHeapRootIndex;
 }
 
+static inline bool iHeapIsNodeValid(Heap heap, const int32_t nodeIndex)
+{
+	assert(NULL != heap);
+	return
+		nodeIndex >= kHeapRootIndex &&
+		nodeIndex < heap->nextEmpty &&
+		nodeIndex < heap->capacity + kHeapRootIndex;
+}
+
 static inline int32_t iHeapParentIndex(const int32_t childIndex)
 {
-	assert(childIndex > kHeapRootIndex);
 	return childIndex/2;
 }
 static inline int32_t iHeapLeftChildIndex(const int32_t parentIndex)
@@ -40,12 +49,12 @@ static inline int32_t iHeapRightChildIndex(const int32_t parentIndex)
 	return parentIndex*2 + 1;
 }
 
-static inline void iHeapSwapNodes(Heap *heap,
+static inline void iHeapSwapNodes(Heap heap,
 	const int32_t index1, const int32_t index2)
 {
 	assert(NULL != heap);
-	assert(index1 >= kHeapRootIndex && index1 < heap->nextEmpty);
-	assert(index2 >= kHeapRootIndex && index2 < heap->nextEmpty);
+	assert(iHeapIsNodeValid(heap, index1));
+	assert(iHeapIsNodeValid(heap, index2));
 	HeapNode tempNode = heap->nodes[index1];
 	heap->nodes[index1] = heap->nodes[index2];
 	heap->nodes[index2] = tempNode;
@@ -53,20 +62,20 @@ static inline void iHeapSwapNodes(Heap *heap,
 
 //////////// public API functions
 
-int32_t heapCreate(Heap **heap, const int32_t heapCapacity)
+int32_t heapCreate(Heap *outHeap, const int32_t heapCapacity)
 {
-	if (NULL == heap)
+	if (NULL == outHeap)
 	{
 		return -1;
 	}
-	*heap = malloc(sizeof(Heap));
-	(*heap)->nodes = malloc((heapCapacity+kHeapRootIndex)*sizeof(HeapNode));
-	(*heap)->capacity = heapCapacity;
-	(*heap)->nextEmpty = kHeapRootIndex;
+	*outHeap = malloc(sizeof(HeapImpl));
+	(*outHeap)->nodes = malloc((heapCapacity+kHeapRootIndex)*sizeof(HeapNode));
+	(*outHeap)->capacity = heapCapacity;
+	(*outHeap)->nextEmpty = kHeapRootIndex;
 	return 0;
 }
 
-int32_t heapCurrentSize(Heap *heap, int32_t *outSize)
+int32_t heapCurrentSize(Heap heap, int32_t *outSize)
 {
 	if (NULL == heap)
 	{
@@ -79,7 +88,20 @@ int32_t heapCurrentSize(Heap *heap, int32_t *outSize)
 	return 0;
 }
 
-int32_t heapInsert(Heap *heap, const int32_t key, const void *data)
+int32_t heapCapacity(Heap heap, int32_t *outCapacity)
+{
+	if (NULL == heap)
+	{
+		return -1;
+	}
+	if (NULL != outCapacity)
+	{
+		*outCapacity = heap->capacity;
+	}
+	return 0;
+}
+
+int32_t heapInsert(Heap heap, const int32_t key, const void *data)
 {
 	if (NULL == heap)
 	{
@@ -108,7 +130,7 @@ int32_t heapInsert(Heap *heap, const int32_t key, const void *data)
 	return 0;
 }
 
-int32_t heapPeek(Heap *heap, int32_t *outTopKey, const void **outTopData)
+int32_t heapPeek(Heap heap, int32_t *outTopKey, const void **outTopData)
 {
 	if (NULL == heap)
 	{
@@ -130,18 +152,17 @@ int32_t heapPeek(Heap *heap, int32_t *outTopKey, const void **outTopData)
 	return 0;
 }
 
-int32_t heapPop(Heap *heap)
+int32_t heapPop(Heap heap)
 {
 	if (NULL == heap)
 	{
 		return -1;
 	}
-	int32_t heapSize = iHeapCurrentSize(heap);
-	if (0 == heapSize)
+	if (0 == iHeapCurrentSize(heap))
 	{
 		return -2; // Can't pop an empty heap
 	}
-	int32_t lastIndex = heapSize;
+	int32_t lastIndex = heap->nextEmpty-1;
 	heap->nodes[kHeapRootIndex] = heap->nodes[lastIndex];
 	// Bubble down
 	int32_t parentIndex = kHeapRootIndex;
@@ -169,4 +190,60 @@ int32_t heapPop(Heap *heap)
 	}
 	heap->nextEmpty -= 1;
 	return 0;
+}
+
+static int32_t iHeapCheckRecurse(Heap heap, const int32_t rootIndex)
+{
+	assert(NULL != heap);
+	assert(iHeapIsNodeValid(heap, rootIndex));
+	// Test left child & recurse
+	int32_t leftChildIndex  = iHeapLeftChildIndex(rootIndex);
+	if (iHeapIsNodeValid(heap, leftChildIndex))
+	{
+		if (heap->nodes[leftChildIndex].key < heap->nodes[rootIndex].key)
+		{
+			return -5;
+		}
+		if (0 != iHeapCheckRecurse(heap, leftChildIndex))
+		{
+			return -5;
+		}
+	}
+	// Test right child & recurse
+	int32_t rightChildIndex = iHeapRightChildIndex(rootIndex);
+	if (iHeapIsNodeValid(heap, rightChildIndex))
+	{
+		if (heap->nodes[rightChildIndex].key < heap->nodes[rootIndex].key)
+		{
+			return -5;
+		}
+		if (0 != iHeapCheckRecurse(heap, rightChildIndex))
+		{
+			return -5;
+		}
+	}
+	return 0;
+}
+int32_t heapCheck(Heap heap)
+{
+	// Basic tests
+	if (NULL == heap ||
+		NULL == heap->nodes)
+	{
+		return -1; // Heap pointer(s) are NULL
+	}
+	if (heap->nextEmpty < kHeapRootIndex ||
+		heap->capacity < 0 ||
+		iHeapCurrentSize(heap) > heap->capacity)
+	{
+		return -2; // Heap size/capacity are invalid
+	}
+	
+	if (iHeapCurrentSize(heap) == 0)
+	{
+		return 0; // Empty heaps are valid
+	}
+
+	// Recursively test all nodes to verify the heap condition holds.
+	return iHeapCheckRecurse(heap, kHeapRootIndex);
 }
