@@ -192,38 +192,6 @@ int32_t heapPop(Heap heap)
 	return 0;
 }
 
-static int32_t iHeapCheckRecurse(Heap heap, const int32_t rootIndex)
-{
-	assert(NULL != heap);
-	assert(iHeapIsNodeValid(heap, rootIndex));
-	// Test left child & recurse
-	int32_t leftChildIndex  = iHeapLeftChildIndex(rootIndex);
-	if (iHeapIsNodeValid(heap, leftChildIndex))
-	{
-		if (heap->nodes[leftChildIndex].key < heap->nodes[rootIndex].key)
-		{
-			return -5;
-		}
-		if (0 != iHeapCheckRecurse(heap, leftChildIndex))
-		{
-			return -5;
-		}
-	}
-	// Test right child & recurse
-	int32_t rightChildIndex = iHeapRightChildIndex(rootIndex);
-	if (iHeapIsNodeValid(heap, rightChildIndex))
-	{
-		if (heap->nodes[rightChildIndex].key < heap->nodes[rootIndex].key)
-		{
-			return -5;
-		}
-		if (0 != iHeapCheckRecurse(heap, rightChildIndex))
-		{
-			return -5;
-		}
-	}
-	return 0;
-}
 int32_t heapCheck(Heap heap)
 {
 	// Basic tests
@@ -245,5 +213,14 @@ int32_t heapCheck(Heap heap)
 	}
 
 	// Recursively test all nodes to verify the heap condition holds.
-	return iHeapCheckRecurse(heap, kHeapRootIndex);
+	for(int32_t iNode=kHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
+	{
+		int32_t parentIndex = iHeapParentIndex(iNode);
+		assert(iHeapIsNodeValid(heap, parentIndex));
+		if (heap->nodes[iNode].key < heap->nodes[parentIndex].key)
+		{
+			return -5;
+		}
+	}
+	return 0;
 }
