@@ -6,8 +6,8 @@
 
 typedef struct HeapNode
 {
-	int32_t key;
-	const void *data;
+	HeapKey key;
+	HeapData data;
 } HeapNode;
 
 typedef struct HeapImpl
@@ -101,7 +101,7 @@ int32_t heapCapacity(Heap heap, int32_t *outCapacity)
 	return 0;
 }
 
-int32_t heapInsert(Heap heap, const int32_t key, const void *data)
+int32_t heapInsert(Heap heap, const HeapKey key, const HeapData data)
 {
 	if (NULL == heap)
 	{
@@ -130,7 +130,7 @@ int32_t heapInsert(Heap heap, const int32_t key, const void *data)
 	return 0;
 }
 
-int32_t heapPeek(Heap heap, int32_t *outTopKey, const void **outTopData)
+int32_t heapPeek(Heap heap, int32_t *outTopKey, HeapData *outTopData)
 {
 	if (NULL == heap)
 	{
