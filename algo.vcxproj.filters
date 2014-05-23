@@ -7,4 +7,7 @@
   <ItemGroup>
     <ClInclude Include="algo.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
 </Project>
