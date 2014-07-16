@@ -59,6 +59,20 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, const int32_t queueCapacity)
 	}
 	return kAlgoErrorNone;
 }
+AlgoError algoQueueDestroy(AlgoQueue queue)
+{
+	if (NULL == queue)
+	{
+		return kAlgoErrorNone;
+	}
+	if (NULL == queue->nodes)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	free(queue->nodes);
+	free(queue);
+	return kAlgoErrorNone;
+}
 
 AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data)
 {
@@ -184,6 +198,20 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, const int32_t heapCapacity)
 	(*outHeap)->nodes = malloc((heapCapacity+kAlgoHeapRootIndex)*sizeof(AlgoHeapNode));
 	(*outHeap)->capacity = heapCapacity;
 	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
+	return kAlgoErrorNone;
+}
+AlgoError algoHeapDestroy(AlgoHeap heap)
+{
+	if (NULL == heap)
+	{
+		return kAlgoErrorNone;
+	}
+	if (NULL == heap->nodes)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	free(heap->nodes);
+	free(heap);
 	return kAlgoErrorNone;
 }
 

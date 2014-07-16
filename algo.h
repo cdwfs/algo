@@ -20,6 +20,7 @@ typedef struct AlgoQueueImpl *AlgoQueue;
 typedef int32_t AlgoQueueData;
 
 AlgoError algoQueueCreate(AlgoQueue *outQueue, const int32_t queueCapacity);
+AlgoError algoQueueDestroy(AlgoQueue queue);
 AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data);
 AlgoError algoQueueRemove(AlgoQueue queue, AlgoQueueData *outData);
 AlgoError algoQueueCapacity(const AlgoQueue queue, int32_t *outCapacity);
@@ -32,6 +33,7 @@ typedef int32_t AlgoHeapKey;
 typedef const void* AlgoHeapData;
 
 AlgoError algoHeapCreate(AlgoHeap *heap, const int32_t heapCapacity);
+AlgoError algoHeapDestroy(AlgoHeap heap);
 AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data);
 AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outTopData);
