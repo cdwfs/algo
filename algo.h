@@ -2,6 +2,11 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef enum AlgoError
 {
 	kAlgoErrorNone = 0,
@@ -33,3 +38,7 @@ AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outT
 AlgoError algoHeapPop(AlgoHeap heap);
 AlgoError algoHeapCheck(AlgoHeap heap);
 AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
+
+#ifdef __cplusplus
+}
+#endif
