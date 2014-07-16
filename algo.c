@@ -1,7 +1,7 @@
 #include "algo.h"
 
 #include <assert.h>
-#if __STDC_VERSION__ >= 199901L
+#if __STDC_VERSION__ >= 199901L || _MSC_VER >= 1800
 // C99
 #include <stdbool.h>
 #else
