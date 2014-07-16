@@ -1,7 +1,14 @@
 #include "algo.h"
 
 #include <assert.h>
+#if __STDC_VERSION__ >= 199901L
+// C99
 #include <stdbool.h>
+#else
+#define bool int
+#define false 0
+#define true 1
+#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -178,10 +185,11 @@ static int32_t iHeapRightChildIndex(const int32_t parentIndex)
 static void iHeapSwapNodes(AlgoHeap heap,
 	const int32_t index1, const int32_t index2)
 {
+	AlgoHeapNode tempNode;
 	assert(NULL != heap);
 	assert(iHeapIsNodeValid(heap, index1));
 	assert(iHeapIsNodeValid(heap, index2));
-	AlgoHeapNode tempNode = heap->nodes[index1];
+	tempNode = heap->nodes[index1];
 	heap->nodes[index1] = heap->nodes[index2];
 	heap->nodes[index2] = tempNode;
 }
@@ -239,6 +247,7 @@ AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity)
 
 AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data)
 {
+	int32_t childIndex;
 	if (NULL == heap)
 	{
 		return kAlgoErrorInvalidArgument;
@@ -248,7 +257,7 @@ AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapDat
 		return kAlgoErrorOperationFailed; // Can't insert if it's full!
 	}
 	// Insert new node at the end
-	int32_t childIndex = heap->nextEmpty;
+	childIndex = heap->nextEmpty;
 	heap->nextEmpty += 1;
 	heap->nodes[childIndex].key  = key;
 	heap->nodes[childIndex].data = data;
@@ -290,6 +299,7 @@ AlgoError algoHeapPeek(AlgoHeap heap, int32_t *outTopKey, AlgoHeapData *outTopDa
 
 AlgoError algoHeapPop(AlgoHeap heap)
 {
+	int32_t lastIndex, parentIndex, leftChildIndex;
 	if (NULL == heap)
 	{
 		return kAlgoErrorInvalidArgument;
@@ -298,19 +308,19 @@ AlgoError algoHeapPop(AlgoHeap heap)
 	{
 		return kAlgoErrorOperationFailed; // Can't pop an empty heap
 	}
-	int32_t lastIndex = heap->nextEmpty-1;
+	lastIndex = heap->nextEmpty-1;
 	heap->nodes[kAlgoHeapRootIndex] = heap->nodes[lastIndex];
 	// Bubble down
-	int32_t parentIndex = kAlgoHeapRootIndex;
-	int32_t leftChildIndex = iHeapLeftChildIndex(parentIndex);
+	parentIndex = kAlgoHeapRootIndex;
+	leftChildIndex = iHeapLeftChildIndex(parentIndex);
 	while(leftChildIndex < heap->nextEmpty)
 	{
 		int32_t minKeyIndex = parentIndex;
+		int32_t rightChildIndex = iHeapRightChildIndex(parentIndex);
 		if (heap->nodes[leftChildIndex].key < heap->nodes[minKeyIndex].key)
 		{
 			minKeyIndex = leftChildIndex;
 		}
-		int32_t rightChildIndex = iHeapRightChildIndex(parentIndex);
 		if (rightChildIndex < heap->nextEmpty &&
 			heap->nodes[rightChildIndex].key < heap->nodes[minKeyIndex].key)
 		{
@@ -330,6 +340,7 @@ AlgoError algoHeapPop(AlgoHeap heap)
 
 AlgoError algoHeapCheck(AlgoHeap heap)
 {
+	int32_t iNode;
 	// Basic tests
 	if (NULL == heap ||
 		NULL == heap->nodes)
@@ -349,7 +360,7 @@ AlgoError algoHeapCheck(AlgoHeap heap)
 	}
 
 	// Recursively test all nodes to verify the heap condition holds.
-	for(int32_t iNode=kAlgoHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
+	for(iNode=kAlgoHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
 	{
 		int32_t parentIndex = iHeapParentIndex(iNode);
 		assert(iHeapIsNodeValid(heap, parentIndex));
