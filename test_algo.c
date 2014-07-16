@@ -21,9 +21,9 @@
 static void testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
 {
 	int32_t capacity = -1;
+	int32_t beforeSize = -1, afterSize = -1;
 	ALGO_VALIDATE( algoQueueCapacity(queue, &capacity) );
 
-	int32_t beforeSize = -1, afterSize = -1;
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
 	if (beforeSize == capacity)
 	{
@@ -39,13 +39,14 @@ static void testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
 static AlgoQueueData testQueueRemove(AlgoQueue queue)
 {
 	int32_t beforeSize = -1, afterSize = -1;
+	AlgoQueueData elem;
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
 	if (beforeSize == 0)
 	{
-		return -1; // queue is empty
+		elem.asInt = -1;
+		return elem; // queue is empty
 	}
 
-	AlgoQueueData elem;
 	ALGO_VALIDATE( algoQueueRemove(queue, &elem) );
 
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
@@ -62,15 +63,18 @@ static AlgoQueueData testQueueRemove(AlgoQueue queue)
 static void testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
-	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	int32_t beforeSize = -1, afterSize = -1;
+	int32_t newKey;
+	AlgoHeapData heapData;
+	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == capacity)
 	{
 		return; // heap is full
 	}
-	int32_t newKey = rand() % capacity;
-	ALGO_VALIDATE( algoHeapInsert(heap, newKey, (const void*)(intptr_t)newKey) );
+	newKey = rand() % capacity;
+	heapData.asInt = newKey;
+	ALGO_VALIDATE( algoHeapInsert(heap, newKey, heapData) );
 
 	// Not a heap requirement; just making sure it's a valid index for
 	// heapContents[].
@@ -86,24 +90,25 @@ static void testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 static void testHeapPop(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
-	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	int32_t beforeSize = -1, afterSize = -1;
+	int32_t minKey = -1;
+	AlgoHeapData minData;
+	int iVal;
+	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == 0)
 	{
 		return; // heap is empty
 	}
-	int32_t minKey = -1;
-	const void *minData = NULL;
 	ALGO_VALIDATE( algoHeapPeek(heap, &minKey, &minData) );
 	// key and data must match (in this test environment)
-	assert((intptr_t)minKey == (intptr_t)minData);
+	assert(minKey == minData.asInt);
 	// Not a heap requirement; just making sure it's a valid index for
 	// heapContents[].
 	assert(minKey < capacity);
 	// Make sure minKey is the smallest key in the heap (all counters below
 	// it must be zero)
-	for(int iVal=0; iVal<minKey; ++iVal)
+	for(iVal=0; iVal<minKey; ++iVal)
 	{
 		assert(heapContents[iVal] == 0);
 	}
@@ -126,27 +131,30 @@ int main(void)
 	{
 		const int32_t kTestElemCount = 1024*1024;
 		const int32_t kQueueCapacity = 16*1024;
-		printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
 		AlgoQueueData *testElements = malloc(kTestElemCount*sizeof(AlgoQueueData));
-		for(int iElem=0; iElem<kTestElemCount; ++iElem)
-		{
-			testElements[iElem] = (AlgoQueueData)rand();
-		}
 		int32_t nextToAdd = 0, nextToCheck = 0;
-
 		AlgoQueue queue;
+		int32_t currentSize = -1;
+		int iElem;
+		printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
+		for(iElem=0; iElem<kTestElemCount; ++iElem)
+		{
+			testElements[iElem].asInt = rand();
+		}
+
 		ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity) );
 
-		int32_t currentSize = -1;
 		ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 		assert(0 == currentSize);
 
 		while (nextToCheck < kTestElemCount)
 		{
 			const int32_t numAdds = min( 1 + (rand() % (kQueueCapacity-currentSize)), kTestElemCount-nextToAdd );
+			int32_t numRemoves;
+			int iAdd, iRemove;
 			assert(numAdds >= 0);
 			printf(" - Inserting %d elements...\n", numAdds);
-			for(int32_t iAdd=0; iAdd<numAdds; ++iAdd)
+			for(iAdd=0; iAdd<numAdds; ++iAdd)
 			{
 				testQueueInsert(queue, testElements[nextToAdd]);
 				nextToAdd += 1;
@@ -159,16 +167,16 @@ int main(void)
 			}
 
 
-			const int32_t numRemoves = 1 + (rand() % currentSize);
+			numRemoves = 1 + (rand() % currentSize);
 			assert(numRemoves > 0);
 			printf(" - Removing %d elements...\n", numRemoves);
-			for(int32_t iRemove=0; iRemove<numRemoves; ++iRemove)
+			for(iRemove=0; iRemove<numRemoves; ++iRemove)
 			{
 				AlgoQueueData elem = testQueueRemove(queue);
-				if (elem != testElements[nextToCheck])
+				if (elem.asInt != testElements[nextToCheck].asInt)
 				{
 					fprintf(stderr, "ERROR: Queue element mismatch\n");
-					assert(elem == testElements[nextToCheck]);
+					assert(elem.asInt == testElements[nextToCheck].asInt);
 				}
 				nextToCheck += 1;
 			}
@@ -190,35 +198,38 @@ int main(void)
 	{
 		const int32_t kHeapCapacity = 16*1024;
 		const int32_t kTestCount = 100;
-		printf("Testing AlgoHeap (capacity: %d, test count: %d)\n", kHeapCapacity, kTestCount);
 		int32_t *heapContents = heapContents = malloc(kHeapCapacity*sizeof(int32_t));
-		memset(heapContents, 0, kHeapCapacity*sizeof(int32_t));
-
 		AlgoHeap heap;
 		int currentSize = 0;
+		int iHeapTest;
+		printf("Testing AlgoHeap (capacity: %d, test count: %d)\n", kHeapCapacity, kTestCount);
+		memset(heapContents, 0, kHeapCapacity*sizeof(int32_t));
+
 		ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity) );
 		ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
 		assert(0 == currentSize);
-		for(int iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)
+		for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)
 		{
 			int32_t numAdds = rand() % (kHeapCapacity-currentSize);
+			int32_t iAdd, iPop, iVal;
+			int32_t numPops;
+			int32_t elemCount = 0;
 			printf(" - Adding %d elements...\n", numAdds);
-			for(int32_t iAdd=0; iAdd<numAdds; ++iAdd)
+			for(iAdd=0; iAdd<numAdds; ++iAdd)
 			{
 				testHeapInsert(heap, heapContents);
 			}
 
 			ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
-			int32_t numPops = 1 + (rand() % currentSize);
+			numPops = 1 + (rand() % currentSize);
 			printf(" - Popping %d elements...\n", numPops);
-			for(int32_t iPop=0; iPop<numPops; ++iPop)
+			for(iPop=0; iPop<numPops; ++iPop)
 			{
 				testHeapPop(heap, heapContents);
 			}
 
 			ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
-			int32_t elemCount = 0;
-			for(int32_t iVal=0; iVal<kHeapCapacity; ++iVal)
+			for(iVal=0; iVal<kHeapCapacity; ++iVal)
 			{
 				elemCount += heapContents[iVal];
 			}
