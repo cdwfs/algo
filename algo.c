@@ -275,7 +275,7 @@ AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapDat
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapPeek(AlgoHeap heap, int32_t *outTopKey, AlgoHeapData *outTopData)
+AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outTopData)
 {
 	if (NULL == heap)
 	{
