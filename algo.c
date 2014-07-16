@@ -42,7 +42,7 @@ static bool iQueueIsFull(const AlgoQueue queue)
 
 ///////////////////////////////////////////////////////
 
-AlgoError algoQueueCreate(AlgoQueue *outQueue, const int32_t queueCapacity)
+AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity)
 {
 	if (NULL == outQueue ||
 		queueCapacity < 1)
@@ -196,7 +196,7 @@ static void iHeapSwapNodes(AlgoHeap heap,
 
 //////////// public API functions
 
-AlgoError algoHeapCreate(AlgoHeap *outHeap, const int32_t heapCapacity)
+AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity)
 {
 	if (NULL == outHeap)
 	{

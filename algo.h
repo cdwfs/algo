@@ -24,7 +24,7 @@ typedef union
 	void *asPtr;
 } AlgoQueueData;
 
-AlgoError algoQueueCreate(AlgoQueue *outQueue, const int32_t queueCapacity);
+AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity);
 AlgoError algoQueueDestroy(AlgoQueue queue);
 AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data);
 AlgoError algoQueueRemove(AlgoQueue queue, AlgoQueueData *outData);
@@ -42,7 +42,7 @@ typedef union
 	void *asPtr;
 } AlgoHeapData;
 
-AlgoError algoHeapCreate(AlgoHeap *heap, const int32_t heapCapacity);
+AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity);
 AlgoError algoHeapDestroy(AlgoHeap heap);
 AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data);
