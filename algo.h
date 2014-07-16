@@ -17,7 +17,12 @@ typedef enum AlgoError
 
 // Queue
 typedef struct AlgoQueueImpl *AlgoQueue;
-typedef int32_t AlgoQueueData;
+typedef union
+{
+	int32_t asInt;
+	float asFloat;
+	void *asPtr;
+} AlgoQueueData;
 
 AlgoError algoQueueCreate(AlgoQueue *outQueue, const int32_t queueCapacity);
 AlgoError algoQueueDestroy(AlgoQueue queue);
@@ -30,7 +35,12 @@ AlgoError algoQueueCurrentSize(const AlgoQueue queue, int32_t *outSize);
 // Heap
 typedef struct AlgoHeapImpl *AlgoHeap;
 typedef int32_t AlgoHeapKey;
-typedef const void* AlgoHeapData;
+typedef union
+{
+	int32_t asInt;
+	float asFloat;
+	void *asPtr;
+} AlgoHeapData;
 
 AlgoError algoHeapCreate(AlgoHeap *heap, const int32_t heapCapacity);
 AlgoError algoHeapDestroy(AlgoHeap heap);
