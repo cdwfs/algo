@@ -18,7 +18,7 @@
 // Test AlgoQueue
 ///////////////////////
 
-static void testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
+static int testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
@@ -27,32 +27,32 @@ static void testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
 	if (beforeSize == capacity)
 	{
-		return; // queue is full
+		return 0; // queue is full
 	}
 
 	ALGO_VALIDATE( algoQueueInsert(queue, elem) );
 
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
 	assert(beforeSize+1 == afterSize);
+	return 1;
 }
 
-static AlgoQueueData testQueueRemove(AlgoQueue queue)
+static int testQueueRemove(AlgoQueue queue, AlgoQueueData *outElem)
 {
 	int32_t beforeSize = -1, afterSize = -1;
-	AlgoQueueData elem;
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
 	if (beforeSize == 0)
 	{
-		elem.asInt = -1;
-		return elem; // queue is empty
+		outElem->asInt = -1;
+		return 0; // queue is empty
 	}
 
-	ALGO_VALIDATE( algoQueueRemove(queue, &elem) );
+	ALGO_VALIDATE( algoQueueRemove(queue, outElem) );
 
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
 	assert(beforeSize-1 == afterSize);
 
-	return elem;
+	return 1;
 }
 
 
@@ -60,7 +60,7 @@ static AlgoQueueData testQueueRemove(AlgoQueue queue)
 // Test AlgoHeap
 ///////////////////////
 
-static void testHeapInsert(AlgoHeap heap, int32_t heapContents[])
+static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
@@ -70,7 +70,7 @@ static void testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == capacity)
 	{
-		return; // heap is full
+		return 0; // heap is full
 	}
 	newKey = rand() % capacity;
 	heapData.asInt = newKey;
@@ -85,9 +85,10 @@ static void testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
 	assert(beforeSize+1 == afterSize);
 	ALGO_VALIDATE( algoHeapCheck(heap) );
+	return 1;
 }
 
-static void testHeapPop(AlgoHeap heap, int32_t heapContents[])
+static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
@@ -98,7 +99,7 @@ static void testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == 0)
 	{
-		return; // heap is empty
+		return 0; // heap is empty
 	}
 	ALGO_VALIDATE( algoHeapPeek(heap, &minKey, &minData) );
 	// key and data must match (in this test environment)
@@ -121,16 +122,19 @@ static void testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
 	assert(beforeSize-1 == afterSize);
 	ALGO_VALIDATE( algoHeapCheck(heap) );
+	return 1;
 }
 
 int main(void)
 {
-	srand((unsigned int)time(NULL));
+	unsigned int randomSeed = 0x53c81533;//(unsigned int)time(NULL);
+	printf("Random seed: 0x%08X\n", randomSeed);
+	srand(randomSeed);
 
 	// Test AlgoQueue
 	{
 		const int32_t kTestElemCount = 1024*1024;
-		const int32_t kQueueCapacity = 16*1024;
+		const int32_t kQueueCapacity = 512 + (rand() % 1024);
 		AlgoQueueData *testElements = malloc(kTestElemCount*sizeof(AlgoQueueData));
 		int32_t nextToAdd = 0, nextToCheck = 0;
 		AlgoQueue queue;
@@ -147,17 +151,17 @@ int main(void)
 		ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 		assert(0 == currentSize);
 
+		// In this test, we alternate between adding a chunk of values to the end of the queue and removing a chunk from the front.
 		while (nextToCheck < kTestElemCount)
 		{
-			const int32_t numAdds = min( 1 + (rand() % (kQueueCapacity-currentSize)), kTestElemCount-nextToAdd );
+			const int32_t numAdds = min(kQueueCapacity, kTestElemCount-nextToAdd);
 			int32_t numRemoves;
 			int iAdd, iRemove;
 			assert(numAdds >= 0);
 			printf(" - Inserting %d elements...\n", numAdds);
 			for(iAdd=0; iAdd<numAdds; ++iAdd)
 			{
-				testQueueInsert(queue, testElements[nextToAdd]);
-				nextToAdd += 1;
+				nextToAdd += testQueueInsert(queue, testElements[nextToAdd]);
 			}
 			ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 			if (currentSize > kQueueCapacity)
@@ -166,19 +170,44 @@ int main(void)
 				assert(currentSize <= kQueueCapacity);
 			}
 
+			// Make sure we can't add elements to a full queue
+			if (currentSize == kQueueCapacity)
+			{
+				AlgoQueueData elem = {0};
+				AlgoError err = algoQueueInsert(queue, elem);
+				if (err != kAlgoErrorOperationFailed)
+				{
+					fprintf(stderr, "ERROR: algoQueueInsert() on a full queue returned %d (expected %d)\n",
+						err, kAlgoErrorOperationFailed);
+					assert(err == kAlgoErrorOperationFailed);
+				}
+			}
 
-			numRemoves = 1 + (rand() % currentSize);
-			assert(numRemoves > 0);
+			// Make sure we can't remove elements from an empty queue
+			if (currentSize == 0)
+			{
+				AlgoQueueData elem;
+				AlgoError err = algoQueueRemove(queue, &elem);
+				if (err != kAlgoErrorOperationFailed)
+				{
+					fprintf(stderr, "ERROR: algoQueueRemove() on an empty queue returned %d (expected %d)\n",
+						err, kAlgoErrorOperationFailed);
+					assert(err == kAlgoErrorOperationFailed);
+				}
+			}
+
+			numRemoves = currentSize;
 			printf(" - Removing %d elements...\n", numRemoves);
 			for(iRemove=0; iRemove<numRemoves; ++iRemove)
 			{
-				AlgoQueueData elem = testQueueRemove(queue);
+				AlgoQueueData elem;
+				int nextToCheckInc = testQueueRemove(queue, &elem);
 				if (elem.asInt != testElements[nextToCheck].asInt)
 				{
 					fprintf(stderr, "ERROR: Queue element mismatch\n");
 					assert(elem.asInt == testElements[nextToCheck].asInt);
 				}
-				nextToCheck += 1;
+				nextToCheck += nextToCheckInc;
 			}
 			ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 			if (currentSize > kQueueCapacity)
@@ -190,7 +219,7 @@ int main(void)
 			printf(" - %d elements left to check\n\n", kTestElemCount - nextToCheck);
 		}
 
-		// TODO: algoQueueDestroy()
+		ALGO_VALIDATE( algoQueueDestroy(queue) );
 		free(testElements);
 	}
 
@@ -237,7 +266,7 @@ int main(void)
 			printf(" - %d elements left!\n\n", currentSize);
 		}
 
-		// TODO: algoHeapDestroy(heap)
+		ALGO_VALIDATE( algoHeapDestroy(heap) );
 		free(heapContents);
 	}
 }
