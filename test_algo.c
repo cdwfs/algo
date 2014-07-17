@@ -1,3 +1,5 @@
+#define ALGO_IMPLEMENTATION
+#define ALGO_STATIC
 #include "algo.h"
 
 #include <assert.h>
