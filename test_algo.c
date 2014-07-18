@@ -129,7 +129,7 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 
 int main(void)
 {
-	unsigned int randomSeed = 0x53c81533;//(unsigned int)time(NULL);
+	unsigned int randomSeed = (unsigned int)time(NULL);
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
 
