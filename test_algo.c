@@ -142,6 +142,8 @@ int main(void)
 		const int32_t kTestElemCount = 1024*1024;
 		const int32_t kQueueCapacity = 512 + (rand() % 1024);
 		AlgoQueueData *testElements = malloc(kTestElemCount*sizeof(AlgoQueueData));
+		void *queueBuffer = NULL;
+		size_t queueBufferSize = 0;
 		int32_t nextToAdd = 0, nextToCheck = 0;
 		AlgoQueue queue;
 		int32_t currentSize = -1;
@@ -152,7 +154,9 @@ int main(void)
 			testElements[iElem].asInt = rand();
 		}
 
-		ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity) );
+		ALGO_VALIDATE( algoQueueBufferSize(&queueBufferSize, kQueueCapacity) );
+		queueBuffer = malloc(queueBufferSize);
+		ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity, queueBuffer, queueBufferSize) );
 
 		ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 		assert(0 == currentSize);
@@ -228,7 +232,7 @@ int main(void)
 #endif
 		}
 
-		ALGO_VALIDATE( algoQueueDestroy(queue) );
+		free(queueBuffer);
 		free(testElements);
 	}
 
@@ -237,13 +241,17 @@ int main(void)
 		const int32_t kHeapCapacity = 16*1024;
 		const int32_t kTestCount = 100;
 		int32_t *heapContents = heapContents = malloc(kHeapCapacity*sizeof(int32_t));
+		void *heapBuffer = NULL;
+		size_t heapBufferSize = 0;
 		AlgoHeap heap;
 		int currentSize = 0;
 		int iHeapTest;
 		printf("Testing AlgoHeap (capacity: %d, test count: %d)\n", kHeapCapacity, kTestCount);
 		memset(heapContents, 0, kHeapCapacity*sizeof(int32_t));
 
-		ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity) );
+		ALGO_VALIDATE( algoHeapBufferSize(&heapBufferSize, kHeapCapacity) );
+		heapBuffer = malloc(heapBufferSize);
+		ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, heapBuffer, heapBufferSize) );
 		ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
 		assert(0 == currentSize);
 		for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)
@@ -278,7 +286,7 @@ int main(void)
 #endif
 		}
 
-		ALGO_VALIDATE( algoHeapDestroy(heap) );
+		free(heapBuffer);
 		free(heapContents);
 	}
 }

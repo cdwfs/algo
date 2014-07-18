@@ -31,8 +31,8 @@ typedef union
 	void *asPtr;
 } AlgoQueueData;
 
-ALGODEF AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity);
-ALGODEF AlgoError algoQueueDestroy(AlgoQueue queue);
+ALGODEF AlgoError algoQueueBufferSize(size_t *outBufferSize, int32_t queueCapacity);
+ALGODEF AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buffer, size_t bufferSize);
 ALGODEF AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data);
 ALGODEF AlgoError algoQueueRemove(AlgoQueue queue, AlgoQueueData *outData);
 ALGODEF AlgoError algoQueueCapacity(const AlgoQueue queue, int32_t *outCapacity);
@@ -49,8 +49,8 @@ typedef union
 	void *asPtr;
 } AlgoHeapData;
 
-ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity);
-ALGODEF AlgoError algoHeapDestroy(AlgoHeap heap);
+ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
+ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, void *buffer, size_t bufferSize);
 ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data);
 ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outTopData);
@@ -110,42 +110,48 @@ static bool iQueueIsFull(const AlgoQueue queue)
 
 ///////////////////////////////////////////////////////
 
-AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity)
+AlgoError algoQueueBufferSize(size_t *outSize, int32_t queueCapacity)
 {
+	if (NULL == outSize ||
+		queueCapacity < 1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outSize = sizeof(AlgoQueueImpl) + (queueCapacity+1) * sizeof(AlgoQueueData);
+	return kAlgoErrorNone;
+}
+
+AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buffer, size_t bufferSize)
+{
+	size_t minBufferSize = 0;
+	AlgoError err;
+	uint8_t *bufferNext = buffer;
 	if (NULL == outQueue ||
 		queueCapacity < 1)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	*outQueue = malloc(sizeof(AlgoQueueImpl));
-	if (NULL == *outQueue)
+	err = algoQueueBufferSize(&minBufferSize, queueCapacity);
+	if (err != kAlgoErrorNone)
 	{
-		return kAlgoErrorAllocationFailed;
+		return err;
 	}
-	(*outQueue)->capacity = queueCapacity;
-	(*outQueue)->nodeCount = queueCapacity+1; // tail is always an empty node
-	(*outQueue)->nodes = malloc( (*outQueue)->nodeCount * sizeof(AlgoQueueData) );
-	(*outQueue)->head = 0;
-	(*outQueue)->tail = 0;
-	if (NULL ==  (*outQueue)->nodes)
-	{
-		free(*outQueue);
-		return kAlgoErrorAllocationFailed;
-	}
-	return kAlgoErrorNone;
-}
-AlgoError algoQueueDestroy(AlgoQueue queue)
-{
-	if (NULL == queue)
-	{
-		return kAlgoErrorNone;
-	}
-	if (NULL == queue->nodes)
+	if (NULL == buffer ||
+		bufferSize < minBufferSize)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	free(queue->nodes);
-	free(queue);
+	
+	*outQueue = (AlgoQueueImpl*)bufferNext;
+	bufferNext += sizeof(AlgoQueueImpl);
+
+	(*outQueue)->capacity = queueCapacity;
+	(*outQueue)->nodeCount = queueCapacity+1; // tail is always an empty node
+	(*outQueue)->nodes = (AlgoQueueData*)bufferNext;
+	bufferNext += (*outQueue)->nodeCount * sizeof(AlgoQueueData);
+	(*outQueue)->head = 0;
+	(*outQueue)->tail = 0;
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoQueueBufferSize() is out of date
 	return kAlgoErrorNone;
 }
 
@@ -264,30 +270,43 @@ static void iHeapSwapNodes(AlgoHeap heap,
 
 //////////// public API functions
 
-AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity)
+AlgoError algoHeapBufferSize(size_t *outSize, int32_t heapCapacity)
 {
+	if (NULL == outSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outSize = sizeof(AlgoHeapImpl) + (heapCapacity+kAlgoHeapRootIndex) * sizeof(AlgoHeapNode);
+	return kAlgoErrorNone;
+}
+
+AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, void *buffer, size_t bufferSize)
+{
+	size_t minBufferSize = 0;
+	AlgoError err;
+	uint8_t *bufferNext = buffer;
 	if (NULL == outHeap)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	*outHeap = malloc(sizeof(AlgoHeapImpl));
-	(*outHeap)->nodes = malloc((heapCapacity+kAlgoHeapRootIndex)*sizeof(AlgoHeapNode));
-	(*outHeap)->capacity = heapCapacity;
-	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
-	return kAlgoErrorNone;
-}
-AlgoError algoHeapDestroy(AlgoHeap heap)
-{
-	if (NULL == heap)
+	err = algoHeapBufferSize(&minBufferSize, heapCapacity);
+	if (err != kAlgoErrorNone)
 	{
-		return kAlgoErrorNone;
+		return err;
 	}
-	if (NULL == heap->nodes)
+	if (NULL == buffer ||
+		bufferSize < minBufferSize)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	free(heap->nodes);
-	free(heap);
+
+	*outHeap = (AlgoHeapImpl*)bufferNext;
+	bufferNext += sizeof(AlgoHeapImpl);
+	(*outHeap)->nodes = (AlgoHeapNode*)bufferNext;
+	bufferNext += (heapCapacity+kAlgoHeapRootIndex) * sizeof(AlgoHeapNode);
+	(*outHeap)->capacity = heapCapacity;
+	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoHeapBufferSize() is out of date
 	return kAlgoErrorNone;
 }
 
