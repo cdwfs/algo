@@ -8,6 +8,10 @@
 #include <string.h>
 #include <time.h>
 
+#if defined(_MSC_VER)
+#include <crtdbg.h>
+#endif
+
 #define ALGO_VALIDATE(expr) do {							\
 		AlgoError error = ( expr );							\
 		if (kAlgoErrorNone != error) {							\
@@ -219,6 +223,9 @@ int main(void)
 			}
 
 			printf(" - %d elements left to check\n\n", kTestElemCount - nextToCheck);
+#if defined(_MSC_VER)
+			_ASSERTE(_CrtCheckMemory());
+#endif
 		}
 
 		ALGO_VALIDATE( algoQueueDestroy(queue) );
@@ -266,6 +273,9 @@ int main(void)
 			}
 			assert(elemCount == currentSize);
 			printf(" - %d elements left!\n\n", currentSize);
+#if defined(_MSC_VER)
+			_ASSERTE(_CrtCheckMemory());
+#endif
 		}
 
 		ALGO_VALIDATE( algoHeapDestroy(heap) );
