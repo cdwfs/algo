@@ -78,7 +78,6 @@ ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 #define true 1
 #endif
 #include <stdlib.h>
-#include <string.h>
 
 ///////////////////////////////////////////////////////
 // AlgoQueue
