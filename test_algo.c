@@ -131,6 +131,16 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	return 1;
 }
 
+// For this test, smaller keys have greater priority.
+static int heapKeyCompare(const AlgoHeapKey lhs, const AlgoHeapKey rhs)
+{
+	if (lhs < rhs)
+		return -1;
+	else if (lhs > rhs)
+		return 1;
+	return 0;
+}
+
 int main(void)
 {
 	unsigned int randomSeed = (unsigned int)time(NULL);
@@ -251,7 +261,7 @@ int main(void)
 
 		ALGO_VALIDATE( algoHeapBufferSize(&heapBufferSize, kHeapCapacity) );
 		heapBuffer = malloc(heapBufferSize);
-		ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, heapBuffer, heapBufferSize) );
+		ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, heapKeyCompare, heapBuffer, heapBufferSize) );
 		ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
 		assert(0 == currentSize);
 		for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)

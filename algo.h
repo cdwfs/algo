@@ -48,9 +48,15 @@ typedef union
 	float asFloat;
 	void *asPtr;
 } AlgoHeapData;
+// Defines the ordering of keys within the heap.
+// If this function returns < 0, lhs is higher priority than rhs.
+// If this function returns > 0, rhs is higher priority than lhs.
+// If this function returns   0, rhs has the same priority as lhs.
+typedef int (*AlgoHeapKeyCompareFunc)(const AlgoHeapKey lhs, const AlgoHeapKey rhs);
 
 ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
-ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, void *buffer, size_t bufferSize);
+ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
+	void *buffer, size_t bufferSize);
 ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data);
 ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outTopData);
@@ -219,6 +225,7 @@ typedef struct AlgoHeapNode
 typedef struct AlgoHeapImpl
 {
 	AlgoHeapNode *nodes;
+	AlgoHeapKeyCompareFunc keyCompare;
 	int32_t capacity;
 	int32_t nextEmpty; // 1-based; N's kids = 2*N and 2*N+1; N's parent = N/2
 } AlgoHeapImpl;
@@ -279,12 +286,14 @@ AlgoError algoHeapBufferSize(size_t *outSize, int32_t heapCapacity)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, void *buffer, size_t bufferSize)
+AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
+	void *buffer, size_t bufferSize)
 {
 	size_t minBufferSize = 0;
 	AlgoError err;
 	uint8_t *bufferNext = buffer;
-	if (NULL == outHeap)
+	if (NULL == outHeap ||
+		NULL == keyCompare)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
@@ -303,6 +312,7 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, void *buffer, 
 	bufferNext += sizeof(AlgoHeapImpl);
 	(*outHeap)->nodes = (AlgoHeapNode*)bufferNext;
 	bufferNext += (heapCapacity+kAlgoHeapRootIndex) * sizeof(AlgoHeapNode);
+	(*outHeap)->keyCompare = keyCompare;
 	(*outHeap)->capacity = heapCapacity;
 	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
 	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoHeapBufferSize() is out of date
@@ -351,7 +361,7 @@ AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapDat
 	while(childIndex > kAlgoHeapRootIndex)
 	{
 		int32_t parentIndex = iHeapParentIndex(childIndex);
-		if (heap->nodes[parentIndex].key <= heap->nodes[childIndex].key)
+		if (heap->keyCompare(heap->nodes[parentIndex].key, heap->nodes[childIndex].key) <= 0)
 		{
 			break;
 		}
@@ -403,12 +413,12 @@ AlgoError algoHeapPop(AlgoHeap heap)
 	{
 		int32_t minKeyIndex = parentIndex;
 		int32_t rightChildIndex = iHeapRightChildIndex(parentIndex);
-		if (heap->nodes[leftChildIndex].key < heap->nodes[minKeyIndex].key)
+		if (heap->keyCompare(heap->nodes[leftChildIndex].key, heap->nodes[minKeyIndex].key) < 0)
 		{
 			minKeyIndex = leftChildIndex;
 		}
 		if (rightChildIndex < heap->nextEmpty &&
-			heap->nodes[rightChildIndex].key < heap->nodes[minKeyIndex].key)
+			heap->keyCompare(heap->nodes[rightChildIndex].key, heap->nodes[minKeyIndex].key) < 0)
 		{
 			minKeyIndex = rightChildIndex;
 		}
@@ -450,7 +460,7 @@ AlgoError algoHeapCheck(AlgoHeap heap)
 	{
 		int32_t parentIndex = iHeapParentIndex(iNode);
 		assert(iHeapIsNodeValid(heap, parentIndex));
-		if (heap->nodes[iNode].key < heap->nodes[parentIndex].key)
+		if (heap->keyCompare(heap->nodes[iNode].key, heap->nodes[parentIndex].key) < 0)
 		{
 			return kAlgoErrorInvalidArgument;
 		}
