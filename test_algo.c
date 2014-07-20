@@ -24,7 +24,7 @@
 // Test AlgoQueue
 ///////////////////////
 
-static int testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
+static int testQueueInsert(AlgoQueue queue, const AlgoData elem)
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
@@ -43,7 +43,7 @@ static int testQueueInsert(AlgoQueue queue, AlgoQueueData elem)
 	return 1;
 }
 
-static int testQueueRemove(AlgoQueue queue, AlgoQueueData *outElem)
+static int testQueueRemove(AlgoQueue queue, AlgoData *outElem)
 {
 	int32_t beforeSize = -1, afterSize = -1;
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
@@ -70,23 +70,21 @@ static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
-	int32_t newKey;
-	AlgoHeapData heapData;
+	AlgoData newKey = algoDataFromInt(rand() % capacity);
+	AlgoData newData = newKey;
 	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == capacity)
 	{
 		return 0; // heap is full
 	}
-	newKey = rand() % capacity;
-	heapData.asInt = newKey;
-	ALGO_VALIDATE( algoHeapInsert(heap, newKey, heapData) );
+	ALGO_VALIDATE( algoHeapInsert(heap, newKey, newData) );
 
 	// Not a heap requirement; just making sure it's a valid index for
 	// heapContents[].
-	assert(newKey < capacity); 
+	assert(newKey.asInt < capacity);
 	                           
-	heapContents[newKey] += 1;
+	heapContents[newKey.asInt] += 1;
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
 	assert(beforeSize+1 == afterSize);
@@ -98,8 +96,8 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
-	int32_t minKey = -1;
-	AlgoHeapData minData;
+	AlgoData minKey;
+	AlgoData minData;
 	int iVal;
 	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
@@ -109,21 +107,21 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	}
 	ALGO_VALIDATE( algoHeapPeek(heap, &minKey, &minData) );
 	// key and data must match (in this test environment)
-	assert(minKey == minData.asInt);
+	assert(minKey.asInt == minData.asInt);
 	// Not a heap requirement; just making sure it's a valid index for
 	// heapContents[].
-	assert(minKey < capacity);
+	assert(minKey.asInt < capacity);
 	// Make sure minKey is the smallest key in the heap (all counters below
-	// it must be zero)
-	for(iVal=0; iVal<minKey; ++iVal)
+	// it must be zero).
+	for(iVal=0; iVal<minKey.asInt; ++iVal)
 	{
 		assert(heapContents[iVal] == 0);
 	}
 	// Make sure minKey is in the heap in the first place
-	assert(heapContents[minKey] > 0);
+	assert(heapContents[minKey.asInt] > 0);
 
 	ALGO_VALIDATE( algoHeapPop(heap) );
-	heapContents[minKey] -= 1;
+	heapContents[minKey.asInt] -= 1;
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
 	assert(beforeSize-1 == afterSize);
@@ -132,11 +130,11 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 }
 
 // For this test, smaller keys have greater priority.
-static int heapKeyCompare(const AlgoHeapKey lhs, const AlgoHeapKey rhs)
+static int heapKeyCompare(const AlgoData keyL, const AlgoData keyR)
 {
-	if (lhs < rhs)
+	if (keyL.asInt < keyR.asInt)
 		return -1;
-	else if (lhs > rhs)
+	else if (keyL.asInt > keyR.asInt)
 		return 1;
 	return 0;
 }
@@ -151,18 +149,12 @@ int main(void)
 	{
 		const int32_t kTestElemCount = 1024*1024;
 		const int32_t kQueueCapacity = 512 + (rand() % 1024);
-		AlgoQueueData *testElements = malloc(kTestElemCount*sizeof(AlgoQueueData));
 		void *queueBuffer = NULL;
 		size_t queueBufferSize = 0;
 		int32_t nextToAdd = 0, nextToCheck = 0;
 		AlgoQueue queue;
 		int32_t currentSize = -1;
-		int iElem;
 		printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
-		for(iElem=0; iElem<kTestElemCount; ++iElem)
-		{
-			testElements[iElem].asInt = rand();
-		}
 
 		ALGO_VALIDATE( algoQueueBufferSize(&queueBufferSize, kQueueCapacity) );
 		queueBuffer = malloc(queueBufferSize);
@@ -174,14 +166,14 @@ int main(void)
 		// In this test, we alternate between adding a chunk of values to the end of the queue and removing a chunk from the front.
 		while (nextToCheck < kTestElemCount)
 		{
-			const int32_t numAdds = min(kQueueCapacity, kTestElemCount-nextToAdd);
+			const int32_t numAdds = 1 + (rand() % kQueueCapacity);
 			int32_t numRemoves;
 			int iAdd, iRemove;
 			assert(numAdds >= 0);
-			printf(" - Inserting %d elements...\n", numAdds);
+			printf(" - Inserting at most %d elements...\n", numAdds);
 			for(iAdd=0; iAdd<numAdds; ++iAdd)
 			{
-				nextToAdd += testQueueInsert(queue, testElements[nextToAdd]);
+				nextToAdd += testQueueInsert(queue, algoDataFromInt(nextToAdd));
 			}
 			ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 			if (currentSize > kQueueCapacity)
@@ -193,8 +185,7 @@ int main(void)
 			// Make sure we can't add elements to a full queue
 			if (currentSize == kQueueCapacity)
 			{
-				AlgoQueueData elem = {0};
-				AlgoError err = algoQueueInsert(queue, elem);
+				AlgoError err = algoQueueInsert(queue, algoDataFromInt(0));
 				if (err != kAlgoErrorOperationFailed)
 				{
 					fprintf(stderr, "ERROR: algoQueueInsert() on a full queue returned %d (expected %d)\n",
@@ -206,7 +197,7 @@ int main(void)
 			// Make sure we can't remove elements from an empty queue
 			if (currentSize == 0)
 			{
-				AlgoQueueData elem;
+				AlgoData elem;
 				AlgoError err = algoQueueRemove(queue, &elem);
 				if (err != kAlgoErrorOperationFailed)
 				{
@@ -216,16 +207,16 @@ int main(void)
 				}
 			}
 
-			numRemoves = currentSize;
-			printf(" - Removing %d elements...\n", numRemoves);
+			numRemoves = 1 + (rand() % currentSize);
+			printf(" - Removing at most %d elements...\n", numRemoves);
 			for(iRemove=0; iRemove<numRemoves; ++iRemove)
 			{
-				AlgoQueueData elem;
+				AlgoData elem;
 				int nextToCheckInc = testQueueRemove(queue, &elem);
-				if (elem.asInt != testElements[nextToCheck].asInt)
+				if (elem.asInt != nextToCheck)
 				{
 					fprintf(stderr, "ERROR: Queue element mismatch\n");
-					assert(elem.asInt == testElements[nextToCheck].asInt);
+					assert(elem.asInt == nextToCheck);
 				}
 				nextToCheck += nextToCheckInc;
 			}
@@ -236,14 +227,13 @@ int main(void)
 				assert(currentSize <= kQueueCapacity);
 			}
 
-			printf(" - %d elements left to check\n\n", kTestElemCount - nextToCheck);
+			printf(" - %d elements left to check\n\n", max(0, kTestElemCount - nextToCheck));
 #if defined(_MSC_VER)
 			_ASSERTE(_CrtCheckMemory());
 #endif
 		}
 
 		free(queueBuffer);
-		free(testElements);
 	}
 
 	// Test AlgoHeap

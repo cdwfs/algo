@@ -14,6 +14,17 @@ extern "C"
 #	define ALGODEF extern
 #endif
 
+#ifndef _MSC_VER
+#	ifdef __cplusplus
+#	define ALGO_INLINE inline
+#else
+#	define ALGO_INLINE
+#	endif
+#else
+#	define ALGO_INLINE __forceinline
+#endif
+
+
 typedef enum AlgoError
 {
 	kAlgoErrorNone = 0,
@@ -22,44 +33,40 @@ typedef enum AlgoError
 	kAlgoErrorAllocationFailed = 3,
 } AlgoError;
 
-// Queue
-typedef struct AlgoQueueImpl *AlgoQueue;
 typedef union
 {
 	int32_t asInt;
 	float asFloat;
 	void *asPtr;
-} AlgoQueueData;
+} AlgoData;
+ALGODEF ALGO_INLINE AlgoData algoDataFromInt(int32_t i) { AlgoData d; d.asInt   = i; return d; }
+ALGODEF ALGO_INLINE AlgoData algoDataFromFloat(float f) { AlgoData d; d.asFloat = f; return d; }
+ALGODEF ALGO_INLINE AlgoData algoDataFromPtr(void *p)   { AlgoData d; d.asPtr   = p; return d; }
 
+// Queue
+typedef struct AlgoQueueImpl *AlgoQueue;
 ALGODEF AlgoError algoQueueBufferSize(size_t *outBufferSize, int32_t queueCapacity);
 ALGODEF AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buffer, size_t bufferSize);
-ALGODEF AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data);
-ALGODEF AlgoError algoQueueRemove(AlgoQueue queue, AlgoQueueData *outData);
+ALGODEF AlgoError algoQueueInsert(AlgoQueue queue, const AlgoData elem);
+ALGODEF AlgoError algoQueueRemove(AlgoQueue queue, AlgoData *outElem);
 ALGODEF AlgoError algoQueueCapacity(const AlgoQueue queue, int32_t *outCapacity);
 ALGODEF AlgoError algoQueueCurrentSize(const AlgoQueue queue, int32_t *outSize);
 
 
 // Heap
 typedef struct AlgoHeapImpl *AlgoHeap;
-typedef int32_t AlgoHeapKey;
-typedef union
-{
-	int32_t asInt;
-	float asFloat;
-	void *asPtr;
-} AlgoHeapData;
 // Defines the ordering of keys within the heap.
-// If this function returns < 0, lhs is higher priority than rhs.
-// If this function returns > 0, rhs is higher priority than lhs.
-// If this function returns   0, rhs has the same priority as lhs.
-typedef int (*AlgoHeapKeyCompareFunc)(const AlgoHeapKey lhs, const AlgoHeapKey rhs);
+// If this function returns < 0, keyL is higher priority than keyR.
+// If this function returns > 0, keyR is higher priority than keyL.
+// If this function returns   0, keyR has the same priority as keyL.
+typedef int (*AlgoHeapKeyCompareFunc)(const AlgoData keyL, const AlgoData keyR);
 
 ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
 ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
 	void *buffer, size_t bufferSize);
 ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
-ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data);
-ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outTopData);
+ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data);
+ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
 ALGODEF AlgoError algoHeapPop(AlgoHeap heap);
 ALGODEF AlgoError algoHeapCheck(AlgoHeap heap);
 ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
@@ -91,7 +98,7 @@ ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 
 typedef struct AlgoQueueImpl
 {
-	AlgoQueueData *nodes;
+	AlgoData *nodes;
 	int32_t nodeCount; // Actual length of the nodes[] array.
 	int32_t capacity; // Outside view of how many elements can be stored in the queue.
 	int32_t head; // index of the next element to remove (if the queue isn't empty)
@@ -122,7 +129,7 @@ AlgoError algoQueueBufferSize(size_t *outSize, int32_t queueCapacity)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	*outSize = sizeof(AlgoQueueImpl) + (queueCapacity+1) * sizeof(AlgoQueueData);
+	*outSize = sizeof(AlgoQueueImpl) + (queueCapacity+1) * sizeof(AlgoData);
 	return kAlgoErrorNone;
 }
 
@@ -152,15 +159,15 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 
 	(*outQueue)->capacity = queueCapacity;
 	(*outQueue)->nodeCount = queueCapacity+1; // tail is always an empty node
-	(*outQueue)->nodes = (AlgoQueueData*)bufferNext;
-	bufferNext += (*outQueue)->nodeCount * sizeof(AlgoQueueData);
+	(*outQueue)->nodes = (AlgoData*)bufferNext;
+	bufferNext += (*outQueue)->nodeCount * sizeof(AlgoData);
 	(*outQueue)->head = 0;
 	(*outQueue)->tail = 0;
 	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoQueueBufferSize() is out of date
 	return kAlgoErrorNone;
 }
 
-AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data)
+AlgoError algoQueueInsert(AlgoQueue queue, const AlgoData elem)
 {
 	if (NULL == queue)
 	{
@@ -170,14 +177,14 @@ AlgoError algoQueueInsert(AlgoQueue queue, const AlgoQueueData data)
 	{
 		return kAlgoErrorOperationFailed;
 	}
-	queue->nodes[queue->tail] = data;
+	queue->nodes[queue->tail] = elem;
 	queue->tail = (queue->tail + 1) % queue->nodeCount;
 	return kAlgoErrorNone;
 }
-AlgoError algoQueueRemove(AlgoQueue queue, AlgoQueueData *outData)
+AlgoError algoQueueRemove(AlgoQueue queue, AlgoData *outElem)
 {
 	if (NULL == queue ||
-		NULL == outData)
+		NULL == outElem)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
@@ -185,7 +192,7 @@ AlgoError algoQueueRemove(AlgoQueue queue, AlgoQueueData *outData)
 	{
 		return kAlgoErrorOperationFailed;
 	}
-	*outData = queue->nodes[queue->head];
+	*outElem = queue->nodes[queue->head];
 	queue->head = (queue->head + 1) % queue->nodeCount;
 	return kAlgoErrorNone;
 }
@@ -218,8 +225,8 @@ AlgoError algoQueueCurrentSize(const AlgoQueue queue, int32_t *outSize)
 
 typedef struct AlgoHeapNode
 {
-	AlgoHeapKey key;
-	AlgoHeapData data;
+	AlgoData key;
+	AlgoData data;
 } AlgoHeapNode;
 
 typedef struct AlgoHeapImpl
@@ -341,7 +348,7 @@ AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapData data)
+AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data)
 {
 	int32_t childIndex;
 	if (NULL == heap)
@@ -371,7 +378,7 @@ AlgoError algoHeapInsert(AlgoHeap heap, const AlgoHeapKey key, const AlgoHeapDat
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapPeek(AlgoHeap heap, AlgoHeapKey *outTopKey, AlgoHeapData *outTopData)
+AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 {
 	if (NULL == heap)
 	{
