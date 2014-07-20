@@ -82,14 +82,6 @@ ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 #ifdef ALGO_IMPLEMENTATION
 
 #include <assert.h>
-#if __STDC_VERSION__ >= 199901L || _MSC_VER >= 1800
-// C99
-#include <stdbool.h>
-#else
-#define bool int
-#define false 0
-#define true 1
-#endif
 #include <stdlib.h>
 
 ///////////////////////////////////////////////////////
@@ -109,12 +101,12 @@ typedef struct AlgoQueueImpl
 // if head == tail, that means the queue is empty.
 // if head = (tail+1) % nodeCount, the queue is full.
 
-static bool iQueueIsEmpty(const AlgoQueue queue)
+static int iQueueIsEmpty(const AlgoQueue queue)
 {
 	assert(NULL != queue);
 	return (queue->head == queue->tail);
 }
-static bool iQueueIsFull(const AlgoQueue queue)
+static int iQueueIsFull(const AlgoQueue queue)
 {
 	assert(NULL != queue);
 	return queue->head == (queue->tail+1) % queue->nodeCount;
@@ -247,7 +239,7 @@ static int32_t iHeapCurrentSize(AlgoHeap heap)
 	return heap->nextEmpty - kAlgoHeapRootIndex;
 }
 
-static bool iHeapIsNodeValid(AlgoHeap heap, const int32_t nodeIndex)
+static int iHeapIsNodeValid(AlgoHeap heap, const int32_t nodeIndex)
 {
 	assert(NULL != heap);
 	return
