@@ -9,9 +9,9 @@ extern "C"
 #endif
 
 #ifdef ALGO_STATIC
-#define ALGODEF static
+#	define ALGODEF static
 #else
-#define ALGODEF extern
+#	define ALGODEF extern
 #endif
 
 typedef enum AlgoError
