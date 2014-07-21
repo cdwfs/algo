@@ -43,6 +43,15 @@ ALGODEF ALGO_INLINE AlgoData algoDataFromInt(int32_t i) { AlgoData d; d.asInt   
 ALGODEF ALGO_INLINE AlgoData algoDataFromFloat(float f) { AlgoData d; d.asFloat = f; return d; }
 ALGODEF ALGO_INLINE AlgoData algoDataFromPtr(void *p)   { AlgoData d; d.asPtr   = p; return d; }
 
+// Stack
+typedef struct AlgoStackImpl *AlgoStack;
+ALGODEF AlgoError algoStackBufferSize(size_t *outBufferSize, int32_t stackCapacity);
+ALGODEF AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buffer, size_t bufferSize);
+ALGODEF AlgoError algoStackPush(AlgoStack stack, const AlgoData elem);
+ALGODEF AlgoError algoStackPop(AlgoStack stack, AlgoData *outElem);
+ALGODEF AlgoError algoStackCapacity(const AlgoStack stack, int32_t *outCapacity);
+ALGODEF AlgoError algoStackCurrentSize(const AlgoStack stack, int32_t *outSize);
+
 // Queue
 typedef struct AlgoQueueImpl *AlgoQueue;
 ALGODEF AlgoError algoQueueBufferSize(size_t *outBufferSize, int32_t queueCapacity);
@@ -83,6 +92,127 @@ ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 
 #include <assert.h>
 #include <stdlib.h>
+
+///////////////////////////////////////////////////////
+// AlgoStack
+///////////////////////////////////////////////////////
+
+typedef struct AlgoStackImpl
+{
+	AlgoData *nodes;
+	int32_t capacity; // Outside view of how many elements can be stored in the stack. Size of the nodes[] array.
+	int32_t top; // index of next empty element in the stack. top=0 -> empty stack. top=capacity -> full 
+} AlgoStackImpl;
+
+// We never let the nodes array fill up completely.
+// if head == tail, that means the queue is empty.
+// if head = (tail+1) % nodeCount, the queue is full.
+
+static int iStackIsEmpty(const AlgoStack stack)
+{
+	assert(NULL != stack);
+	return (stack->top == 0);
+}
+static int iStackIsFull(const AlgoStack stack)
+{
+	assert(NULL != stack);
+	return stack->top == stack->capacity;
+}
+
+///////////////////////////////////////////////////////
+
+AlgoError algoStackBufferSize(size_t *outSize, int32_t stackCapacity)
+{
+	if (NULL == outSize ||
+		stackCapacity < 1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outSize = sizeof(AlgoStackImpl) + stackCapacity * sizeof(AlgoData);
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buffer, size_t bufferSize)
+{
+	size_t minBufferSize = 0;
+	AlgoError err;
+	uint8_t *bufferNext = buffer;
+	if (NULL == outStack ||
+		stackCapacity < 1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	err = algoStackBufferSize(&minBufferSize, stackCapacity);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	if (NULL == buffer ||
+		bufferSize < minBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	*outStack = (AlgoStackImpl*)bufferNext;
+	bufferNext += sizeof(AlgoStackImpl);
+
+	(*outStack)->capacity = stackCapacity;
+	(*outStack)->nodes = (AlgoData*)bufferNext;
+	bufferNext += (*outStack)->capacity * sizeof(AlgoData);
+	(*outStack)->top = 0;
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoStackBufferSize() is out of date
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackPush(AlgoStack stack, const AlgoData elem)
+{
+	if (NULL == stack)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	if (iStackIsFull(stack))
+	{
+		return kAlgoErrorOperationFailed;
+	}
+	stack->nodes[(stack->top)++] = elem;
+	return kAlgoErrorNone;
+}
+AlgoError algoStackPop(AlgoStack stack, AlgoData *outElem)
+{
+	if (NULL == stack ||
+		NULL == outElem)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	if (iStackIsEmpty(stack))
+	{
+		return kAlgoErrorOperationFailed;
+	}
+	*outElem = stack->nodes[--(stack->top)];
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackCapacity(const AlgoStack stack, int32_t *outCapacity)
+{
+	if (NULL == stack ||
+		NULL == outCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outCapacity = stack->capacity;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackCurrentSize(const AlgoStack stack, int32_t *outSize)
+{
+	if (NULL == stack ||
+		NULL == outSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outSize = stack->top;
+	return kAlgoErrorNone;
+}
 
 ///////////////////////////////////////////////////////
 // AlgoQueue
