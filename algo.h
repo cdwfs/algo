@@ -157,28 +157,28 @@ typedef struct AlgoHeapImpl *AlgoHeap;
  */
 typedef int (*AlgoHeapKeyCompareFunc)(const AlgoData keyL, const AlgoData keyR);
 /** @brief Convenience function to sort heap keys as integers, in ascending order (lower value = higher priority) */
-ALGODEF int algoHeapKeyCompareIntAscending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoHeapKeyCompareIntAscending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asInt < keyR.asInt) return -1;
 	if (keyL.asInt > keyR.asInt) return  1;
 	return 0;
 }
 /** @brief Convenience function to sort heap keys as integers, in ascending order (higher value = higher priority) */
-ALGODEF int algoHeapKeyCompareIntDescending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoHeapKeyCompareIntDescending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asInt > keyR.asInt) return -1;
 	if (keyL.asInt < keyR.asInt) return  1;
 	return 0;
 }
 /** @brief Convenience function to sort heap keys as floats, in ascending order (lower value = higher priority) */
-ALGODEF int algoHeapKeyCompareFloatAscending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoHeapKeyCompareFloatAscending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asFloat < keyR.asFloat) return -1;
 	if (keyL.asFloat > keyR.asFloat) return  1;
 	return 0;
 }
 /** @brief Convenience function to sort heap keys as floats, in ascending order (higher value = higher priority) */
-ALGODEF int algoHeapKeyCompareFloatDescending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoHeapKeyCompareFloatDescending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asFloat > keyR.asFloat) return -1;
 	if (keyL.asFloat < keyR.asFloat) return  1;
