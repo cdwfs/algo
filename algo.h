@@ -142,7 +142,7 @@ AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buff
 {
 	size_t minBufferSize = 0;
 	AlgoError err;
-	uint8_t *bufferNext = buffer;
+	uint8_t *bufferNext = (uint8_t*)buffer;
 	if (NULL == outStack ||
 		stackCapacity < 1)
 	{
@@ -265,7 +265,7 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 {
 	size_t minBufferSize = 0;
 	AlgoError err;
-	uint8_t *bufferNext = buffer;
+	uint8_t *bufferNext = (uint8_t*)buffer;
 	if (NULL == outQueue ||
 		queueCapacity < 1)
 	{
@@ -426,7 +426,7 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoHeapKeyCom
 {
 	size_t minBufferSize = 0;
 	AlgoError err;
-	uint8_t *bufferNext = buffer;
+	uint8_t *bufferNext = (uint8_t*)buffer;
 	if (NULL == outHeap ||
 		NULL == keyCompare)
 	{
