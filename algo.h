@@ -75,6 +75,30 @@ typedef struct AlgoHeapImpl *AlgoHeap;
 // If this function returns   0, keyR has the same priority as keyL.
 typedef int (*AlgoHeapKeyCompareFunc)(const AlgoData keyL, const AlgoData keyR);
 
+ALGODEF int algoHeapKeyCompareIntAscending(const AlgoData keyL, const AlgoData keyR)
+{
+	if (keyL.asInt < keyR.asInt) return -1;
+	if (keyL.asInt > keyR.asInt) return  1;
+	return 0;
+}
+ALGODEF int algoHeapKeyCompareIntDescending(const AlgoData keyL, const AlgoData keyR)
+{
+	if (keyL.asInt > keyR.asInt) return -1;
+	if (keyL.asInt < keyR.asInt) return  1;
+	return 0;
+}
+ALGODEF int algoHeapKeyCompareFloatAscending(const AlgoData keyL, const AlgoData keyR)
+{
+	if (keyL.asFloat < keyR.asFloat) return -1;
+	if (keyL.asFloat > keyR.asFloat) return  1;
+	return 0;
+}
+ALGODEF int algoHeapKeyCompareFloatDescending(const AlgoData keyL, const AlgoData keyR)
+{
+	if (keyL.asFloat > keyR.asFloat) return -1;
+	if (keyL.asFloat < keyR.asFloat) return  1;
+	return 0;
+}
 ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
 ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
 	void *buffer, size_t bufferSize);
