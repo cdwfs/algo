@@ -1,7 +1,16 @@
 /* algo.h
- * Basic data structures & algorithms
+ * Basic data structures & algorithms in C.
  * http://github.com/cdwfs/algo
  * no warranty implied; use at your own risk
+ *
+ * Do this:
+ *    #define ALGO_IMPLEMENTATION
+ * before you including file in *one* C/C++ file to create the implementation.
+ *
+ * To define all functions as static (to allow multiple inclusions without
+ * link errors, do this:
+ *    #define ALGO_STATIC
+ *
  */
 
 #ifndef ALGO_INCLUDE_H
@@ -30,84 +39,168 @@ extern "C"
 #	define ALGO_INLINE __forceinline
 #endif
 
-
+/** @brief Error code returned by algo functions. */
 typedef enum AlgoError
 {
-	kAlgoErrorNone = 0,
-	kAlgoErrorInvalidArgument = 1,
-	kAlgoErrorOperationFailed = 2,
+	kAlgoErrorNone = 0,             /**< Function returned successfully; no errors occurred. */
+	kAlgoErrorInvalidArgument = 1,  /**< One or more function arguments were invalid (e.g. NULL pointer, negative size, etc.). */
+	kAlgoErrorOperationFailed = 2,  /**< The requested operation could not be performed (e.g. popping from an empty stack). */
 } AlgoError;
 
-typedef union
+/**
+ * @brief Poor man's polymorphism; allows containers to manipulate a variety of data types.
+ *         Who needs type safety?
+ */
+typedef union AlgoData
 {
-	int32_t asInt;
-	float asFloat;
-	void *asPtr;
+	int32_t asInt; /**< The data value as a signed integer. */
+	float asFloat; /**< The data value as a single-precision float. */
+	void *asPtr;   /**< The data value as a void pointer. */
 } AlgoData;
+/** @brief Convenience function to wrap a signed integer as an AlgoData object. */
 ALGODEF ALGO_INLINE AlgoData algoDataFromInt(int32_t i) { AlgoData d; d.asInt   = i; return d; }
+/** @brief Convenience function to wrap a float as an AlgoData object. */
 ALGODEF ALGO_INLINE AlgoData algoDataFromFloat(float f) { AlgoData d; d.asFloat = f; return d; }
+/** @brief Convenience function to wrap a void pointer as an AlgoData object. */
 ALGODEF ALGO_INLINE AlgoData algoDataFromPtr(void *p)   { AlgoData d; d.asPtr   = p; return d; }
 
-// Stack
+/**
+ * @brief Implements a stack (FILO/LIFO) data structure.
+ * @code{.c}
+ * int32_t stackCapacity = 1024; // Change to suit your needs
+ * size_t stackBufferSize = 0;
+ * void *stackBuffer = NULL;
+ * AlgoStack stack;
+ * AlgoError err; // Should be kAlgoErrorNone after every function call
+ * AlgoData poppedData;
+ *
+ * err = algoStackBufferSize(&stackBufferSize, stackCapacity);
+ * stackBuffer = malloc(stackBufferSize);
+ * err = algoStackCreate(&stack, stackCapacity, stackBuffer, stackBufferSize);
+ * err = algoStackPush(stack, algoDataFromInt(5)); // Push the number "5" to the stack
+ * err = algoStackPop(stack, &poppedData); // Pop it off again into poppedData
+ * free(stackBuffer); // No need to destroy the stack object itself; just free its buffer.
+ * @endcode
+ */
 typedef struct AlgoStackImpl *AlgoStack;
+/** @brief Computes the required buffer size for a stack with the specified capacity. */
 ALGODEF AlgoError algoStackBufferSize(size_t *outBufferSize, int32_t stackCapacity);
+/** @brief Initializes a stack object. */
 ALGODEF AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buffer, size_t bufferSize);
+/** @brief Pushes an element to the stack. */
 ALGODEF AlgoError algoStackPush(AlgoStack stack, const AlgoData elem);
+/** @brief Pops an element from the stack. */
 ALGODEF AlgoError algoStackPop(AlgoStack stack, AlgoData *outElem);
+/** @brief Retrieves the maximum number of elements that can be stored concurrently in the stack. */
 ALGODEF AlgoError algoStackCapacity(const AlgoStack stack, int32_t *outCapacity);
+/** @brief Retrieves the number of elements currently stored in the stack. */
 ALGODEF AlgoError algoStackCurrentSize(const AlgoStack stack, int32_t *outSize);
 
-// Queue
+/**
+ * @brief Implements a queue (FIFO) data structure.
+ * @code{.c}
+ * int32_t queueCapacity = 1024; // Change to suit your needs
+ * size_t queueBufferSize = 0;
+ * void *queueBuffer = NULL;
+ * AlgoQueue queue;
+ * AlgoError err; // Should be kAlgoErrorNone after every function call
+ * AlgoData removedData;
+ *
+ * err = algoQueueBufferSize(&queueBufferSize, queueCapacity);
+ * queueBuffer = malloc(queueBufferSize);
+ * err = algoQueueCreate(&queue, queueCapacity, queueBuffer, queueBufferSize);
+ * err = algoQueueInsert(queue, algoDataFromInt(5)); // insert the number "5" into the queue.
+ * err = algoQueueRemove(queue, &removedData); // Remove the head element from the queue and store it in removedData.
+ * free(queueBuffer); // No need to destroy the queue object itself; just free its buffer.
+ * @endcode
+ */
 typedef struct AlgoQueueImpl *AlgoQueue;
+/** @brief Computes the required buffer size for a queue with the specified capacity. */
 ALGODEF AlgoError algoQueueBufferSize(size_t *outBufferSize, int32_t queueCapacity);
+/** @brief Initializes a queue object. */
 ALGODEF AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buffer, size_t bufferSize);
+/** @brief Inserts an element into the queue. */
 ALGODEF AlgoError algoQueueInsert(AlgoQueue queue, const AlgoData elem);
+/** @brief Removes an element from the queue. */
 ALGODEF AlgoError algoQueueRemove(AlgoQueue queue, AlgoData *outElem);
+/** @brief Retrieves the maximum number of elements that can be stored concurrently in the queue. */
 ALGODEF AlgoError algoQueueCapacity(const AlgoQueue queue, int32_t *outCapacity);
+/** @brief Retrieves the number of elements currently stored in the queue. */
 ALGODEF AlgoError algoQueueCurrentSize(const AlgoQueue queue, int32_t *outSize);
 
 
-// Heap
+/**
+ * @brief Implements a heap / priority queue data structure. Each element is inserted with a key, representing that
+ *        element's priority. Popping removes the element with the lowest priority.
+ * @code{.c}
+ * int32_t heapCapacity = 1024; // Change to suit your needs
+ * size_t heapBufferSize = 0;
+ * void* heapBuffer = NULL;
+ * AlgoHeap heap;
+ * AlgoError err;
+ * AlgoData poppedKey, poppedData;
+ *
+ * err = algoHeapBufferSize(&heapBufferSize, heapCapacity);
+ * heapBuffer = malloc(heapBufferSize);
+ * err = algoHeapCreate(&heap, heapCapacity, algoHeapKeyCompareIntAscending, heapBuffer, heapBufferSize);
+ * err = algoHeapInsert(heap, key, value);
+ * err = algoHeapPop(heap, &poppedKey, &poppedData);
+ * @endcode
+ */
 typedef struct AlgoHeapImpl *AlgoHeap;
-// Defines the ordering of keys within the heap.
-// If this function returns < 0, keyL is higher priority than keyR.
-// If this function returns > 0, keyR is higher priority than keyL.
-// If this function returns   0, keyR has the same priority as keyL.
-typedef int (*AlgoHeapKeyCompareFunc)(const AlgoData keyL, const AlgoData keyR);
 
+/**
+ * @brief Allows users to define a custom ordering of keys within a heap.
+ *        If this function returns < 0, keyL is higher priority than keyR.
+ *        If this function returns > 0, keyR is higher priority than keyL.
+ *        If this function returns   0, keyR has the same priority as keyL.
+ */
+typedef int (*AlgoHeapKeyCompareFunc)(const AlgoData keyL, const AlgoData keyR);
+/** @brief Convenience function to sort heap keys as integers, in ascending order (lower value = higher priority) */
 ALGODEF int algoHeapKeyCompareIntAscending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asInt < keyR.asInt) return -1;
 	if (keyL.asInt > keyR.asInt) return  1;
 	return 0;
 }
+/** @brief Convenience function to sort heap keys as integers, in ascending order (higher value = higher priority) */
 ALGODEF int algoHeapKeyCompareIntDescending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asInt > keyR.asInt) return -1;
 	if (keyL.asInt < keyR.asInt) return  1;
 	return 0;
 }
+/** @brief Convenience function to sort heap keys as floats, in ascending order (lower value = higher priority) */
 ALGODEF int algoHeapKeyCompareFloatAscending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asFloat < keyR.asFloat) return -1;
 	if (keyL.asFloat > keyR.asFloat) return  1;
 	return 0;
 }
+/** @brief Convenience function to sort heap keys as floats, in ascending order (higher value = higher priority) */
 ALGODEF int algoHeapKeyCompareFloatDescending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asFloat > keyR.asFloat) return -1;
 	if (keyL.asFloat < keyR.asFloat) return  1;
 	return 0;
 }
+/** @brief Computes the required buffer size for a heap with the specified capacity. */
 ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
+/** @brief Initializes a heap object. */
 ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
 	void *buffer, size_t bufferSize);
-ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
+/** @brief Inserts an element into the heap, with the specified key. */
 ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data);
+/** @brief Inspects the "top" element, but does not remove it from the heap. */
 ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
+/** @brief Removes the "top" element from the heap. */
 ALGODEF AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
+/** @brief Debugging function to validate heap consistency. */
 ALGODEF AlgoError algoHeapCheck(AlgoHeap heap);
+/** @brief Retrieves the maximum number of elements that can be stored concurrently in the heap. */
 ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
+/** @brief Retrieves the number of elements currently stored in the heap. */
+ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 
 #ifdef __cplusplus
 }
