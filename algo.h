@@ -454,7 +454,7 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoHeapKeyCom
 	return kAlgoErrorNone;
 }
 
-int32_t algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize)
+AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize)
 {
 	if (NULL == heap ||
 		NULL == outSize)
