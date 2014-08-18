@@ -36,7 +36,6 @@ typedef enum AlgoError
 	kAlgoErrorNone = 0,
 	kAlgoErrorInvalidArgument = 1,
 	kAlgoErrorOperationFailed = 2,
-	kAlgoErrorAllocationFailed = 3,
 } AlgoError;
 
 typedef union
