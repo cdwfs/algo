@@ -1,3 +1,9 @@
+/* algo.h
+ * Basic data structures & algorithms
+ * http://github.com/cdwfs/algo
+ * no warranty implied; use at your own risk
+ */
+
 #ifndef ALGO_INCLUDE_H
 #define ALGO_INCLUDE_H
 
