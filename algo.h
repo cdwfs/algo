@@ -105,7 +105,7 @@ ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapK
 ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data);
 ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
-ALGODEF AlgoError algoHeapPop(AlgoHeap heap);
+ALGODEF AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
 ALGODEF AlgoError algoHeapCheck(AlgoHeap heap);
 ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 
@@ -551,7 +551,7 @@ AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapPop(AlgoHeap heap)
+AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 {
 	int32_t lastIndex, parentIndex, leftChildIndex;
 	if (NULL == heap)
@@ -562,6 +562,16 @@ AlgoError algoHeapPop(AlgoHeap heap)
 	{
 		return kAlgoErrorOperationFailed; // Can't pop an empty heap
 	}
+	// Store top element in output arguments
+	if (NULL != outTopKey)
+	{
+		*outTopKey = heap->nodes[kAlgoHeapRootIndex].key;
+	}
+	if (NULL != outTopData)
+	{
+		*outTopData = heap->nodes[kAlgoHeapRootIndex].data;
+	}
+	// Overwrite top element
 	lastIndex = heap->nextEmpty-1;
 	heap->nodes[kAlgoHeapRootIndex] = heap->nodes[lastIndex];
 	// Bubble down

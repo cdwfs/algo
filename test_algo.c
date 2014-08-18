@@ -138,8 +138,8 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
-	AlgoData minKey;
-	AlgoData minData;
+	AlgoData minKey, minKeyPeek;
+	AlgoData minData, minDataPeek;
 	int iVal;
 	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
@@ -147,7 +147,11 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	{
 		return 0; // heap is empty
 	}
-	ALGO_VALIDATE( algoHeapPeek(heap, &minKey, &minData) );
+	ALGO_VALIDATE( algoHeapPeek(heap, &minKeyPeek, &minDataPeek) );
+	ALGO_VALIDATE( algoHeapPop(heap, &minKey, &minData) );
+	// Peeked data should match popped data
+	assert(minKeyPeek.asInt == minKey.asInt);
+	assert(minDataPeek.asInt == minData.asInt);
 	// key and data must match (in this test environment)
 	assert(minKey.asInt == minData.asInt);
 	// Not a heap requirement; just making sure it's a valid index for
@@ -162,7 +166,6 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	// Make sure minKey is in the heap in the first place
 	assert(heapContents[minKey.asInt] > 0);
 
-	ALGO_VALIDATE( algoHeapPop(heap) );
 	heapContents[minKey.asInt] -= 1;
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
