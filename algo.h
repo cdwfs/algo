@@ -710,11 +710,12 @@ AlgoError algoHeapCheck(AlgoHeap heap)
 	{
 		return kAlgoErrorInvalidArgument; // AlgoHeap size/capacity are invalid
 	}
-	
 	if (iHeapCurrentSize(heap) == 0)
 	{
 		return kAlgoErrorNone; // Empty heaps are valid
 	}
+	// This is mainly here to prevent warnings about an unused function.
+	(void)iHeapIsNodeValid(heap, kAlgoHeapRootIndex);
 
 	// Recursively test all nodes to verify the heap condition holds.
 	for(iNode=kAlgoHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
