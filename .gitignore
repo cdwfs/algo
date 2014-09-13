@@ -25,3 +25,5 @@ Release/
 *.unsuccessfulbuild
 *.ipch
 *.cache
+
+build
