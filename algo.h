@@ -243,14 +243,14 @@ static int iStackIsFull(const AlgoStack stack)
 
 ///////////////////////////////////////////////////////
 
-AlgoError algoStackBufferSize(size_t *outSize, int32_t stackCapacity)
+AlgoError algoStackBufferSize(size_t *outBufferSize, int32_t stackCapacity)
 {
-	if (NULL == outSize ||
+	if (NULL == outBufferSize ||
 		stackCapacity < 1)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	*outSize = sizeof(AlgoStackImpl) + stackCapacity * sizeof(AlgoData);
+	*outBufferSize = sizeof(AlgoStackImpl) + stackCapacity * sizeof(AlgoData);
 	return kAlgoErrorNone;
 }
 
