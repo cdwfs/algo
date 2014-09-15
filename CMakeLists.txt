@@ -17,6 +17,11 @@ set(CMAKE_BUILD_TYPE Debug)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 SET(headers algo.h test_common.h)
 
+set(exe_name test_allocpool)
+set(sources ${exe_name}.c)
+cmp_IDE_SOURCE_PROPERTIES( "\\\\" "${headers}" "${sources}")
+add_executable(${exe_name} ${sources} ${headers})
+
 set(exe_name test_heap)
 set(sources ${exe_name}.c)
 cmp_IDE_SOURCE_PROPERTIES( "\\\\" "${headers}" "${sources}")

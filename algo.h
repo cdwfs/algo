@@ -65,6 +65,28 @@ ALGODEF ALGO_INLINE AlgoData algoDataFromFloat(float f) { AlgoData d; d.asFloat 
 ALGODEF ALGO_INLINE AlgoData algoDataFromPtr(void *p)   { AlgoData d; d.asPtr   = p; return d; }
 
 /**
+ * @brief Implements a pool-style memory allocator, with fixed-size blocks and O(1) alloc/free.
+ */
+typedef struct AlgoAllocPoolImpl *AlgoAllocPool;
+/** @brief Computes the required buffer size for a pool allocator with the specified parameters. */
+ALGODEF AlgoError algoAllocPoolBufferSize(size_t *outBufferSize, const int32_t elementSize, const int32_t elementCount);
+/** @brief Initializes a pool allocator object.
+	@param outAllocPool Pointer to the pool allocator to initialize.
+	@param elementSize Size of each element in the pool. Must be at least 4 bytes.
+	@param elementCount Number of elements in the pool. Must be greater than zero.
+	@param buffer Memory buffer to use for this object. Use algoAllocPoolBufferSize() to compute the appropriate buffer size.
+	@param bufferSize Size of the "buffer" parameter, in bytes. Use Use algoAllocPoolBufferSize() to compute the appropriate buffer size.
+	*/
+ALGODEF AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t elementSize, const int32_t elementCount,
+	void *buffer, const size_t bufferSize);
+/** @brief Allocates one element from the pool, and returns a pointer to it. Returns NULL if no elements are available. */
+ALGODEF void *algoAllocPoolAlloc(AlgoAllocPool allocPool);
+/** @brief Frees an element previously allocated by algoAllocPoolAlloc(). */
+ALGODEF AlgoError algoAllocPoolFree(AlgoAllocPool allocPool, void *p);
+/** @brief Queries the element size of a pool allocator. */
+ALGODEF AlgoError algoAllocPoolElementSize(AlgoAllocPool allocPool, int32_t *outElementSize);
+
+/**
  * @brief Implements a stack (FILO/LIFO) data structure.
  * @code{.c}
  * int32_t stackCapacity = 1024; // Change to suit your needs
@@ -214,6 +236,124 @@ ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 
 #include <assert.h>
 #include <stdlib.h>
+
+///////////////////////////////////////////////////////
+// AlgoAllocPool
+///////////////////////////////////////////////////////
+
+typedef struct AlgoAllocPoolImpl
+{
+	uint8_t *pool;
+	int32_t elementSize; // must be >= 4
+	int32_t elementCount; // must be > 0
+	int32_t headIndex; // if -1, pool is empty
+} AlgoAllocPoolImpl;
+
+AlgoError algoAllocPoolBufferSize(size_t *outBufferSize, const int32_t elementSize, const int32_t elementCount)
+{
+	if (NULL == outBufferSize ||
+		elementSize < sizeof( int32_t) ||
+		elementCount < 1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	const size_t poolSize = elementCount*elementSize;
+	*outBufferSize = sizeof(AlgoAllocPoolImpl) + poolSize;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t elementSize, const int32_t elementCount, void *buffer, const size_t bufferSize)
+{
+	size_t minBufferSize = 0;
+	AlgoError err;
+	uint8_t *bufferNext = (uint8_t*)buffer;
+	if (NULL == outAllocPool ||
+		elementSize < sizeof( (*outAllocPool)->headIndex) ||
+		elementCount < 1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	err = algoAllocPoolBufferSize(&minBufferSize, elementSize, elementCount);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	if (NULL == buffer ||
+		bufferSize < minBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	*outAllocPool = (AlgoAllocPoolImpl*)bufferNext;
+	bufferNext += sizeof(AlgoAllocPoolImpl);
+
+	const size_t poolSize = elementCount*elementSize;
+	(*outAllocPool)->pool = (uint8_t*)bufferNext;
+	bufferNext += poolSize;
+
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoAllocPoolBufferSize() is out of date
+
+	(*outAllocPool)->elementSize = elementSize;
+	(*outAllocPool)->elementCount = elementCount;
+	(*outAllocPool)->headIndex = 0;
+	{
+		uint8_t *elem = (*outAllocPool)->pool + 0;
+		uint8_t *end  = (*outAllocPool)->pool + poolSize;
+		int nextIndex = 1;
+		for(nextIndex; nextIndex < elementCount; ++nextIndex)
+		{
+			*(int32_t*)elem = nextIndex;
+			elem += elementSize;
+		}
+		*(int32_t*)elem = -1;
+		assert(elem + elementSize == end);
+		(void)end;
+	}
+	return kAlgoErrorNone;
+}
+
+void *algoAllocPoolAlloc(AlgoAllocPool allocPool)
+{
+	uint8_t *elem = NULL;
+	if (NULL == allocPool ||
+		allocPool->headIndex == -1)
+	{
+		return NULL;
+	}
+
+	elem = allocPool->pool + allocPool->headIndex * allocPool->elementSize;
+	allocPool->headIndex = *(int32_t*)elem;
+	return elem;
+}
+
+AlgoError algoAllocPoolFree(AlgoAllocPool allocPool, void *p)
+{
+	uint8_t *elem = (uint8_t*)p;
+	if (elem == NULL)
+		return kAlgoErrorNone;
+	if (NULL == allocPool ||
+		elem <  allocPool->pool ||
+		elem >= allocPool->pool + (allocPool->elementCount * allocPool->elementSize) ||
+		(elem - allocPool->pool) % allocPool->elementSize != 0)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*(int32_t*)elem = allocPool->headIndex;
+	allocPool->headIndex = (elem - allocPool->pool) / allocPool->elementSize;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoAllocPoolElementSize(AlgoAllocPool allocPool, int32_t *outElementSize)
+{
+	if (NULL == allocPool ||
+		NULL == outElementSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outElementSize = allocPool->elementSize;
+	return kAlgoErrorNone;
+}
+
 
 ///////////////////////////////////////////////////////
 // AlgoStack
