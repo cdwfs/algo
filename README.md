@@ -14,3 +14,8 @@ Currently includes:
 - stack
 - queue
 - heap / priority queue
+- pool allocator
+
+On deck:
+- hash table
+- graph
