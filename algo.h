@@ -16,6 +16,7 @@
 #ifndef ALGO_INCLUDE_H
 #define ALGO_INCLUDE_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
