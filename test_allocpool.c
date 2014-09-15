@@ -29,11 +29,12 @@ static void allocationSetBlock(Allocation *outAlloc, void *newBlock, size_t newB
 }
 static int isAllocationValid(const Allocation *alloc)
 {
+	int32_t iByte, iMax;
 	if (NULL == alloc->block)
 	{
 		return 1; // NULL allocations are valid
 	}
-	for(int32_t iByte=0,iMax=alloc->blockBytes; iByte<iMax; ++iByte)
+	for(iByte=0,iMax=alloc->blockBytes; iByte<iMax; ++iByte)
 	{
 		if (alloc->block[iByte] != alloc->byte)
 			return 0;
