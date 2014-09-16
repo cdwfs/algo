@@ -300,8 +300,8 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 	{
 		uint8_t *elem = (*outAllocPool)->pool + 0;
 		uint8_t *end  = (*outAllocPool)->pool + poolSize;
-		int nextIndex = 1;
-		for(nextIndex; nextIndex < elementCount; ++nextIndex)
+		int nextIndex;
+		for(nextIndex = 1; nextIndex < elementCount; ++nextIndex)
 		{
 			*(int32_t*)elem = nextIndex;
 			elem += elementSize;
