@@ -9,7 +9,7 @@ static int testQueueInsert(AlgoQueue queue, const AlgoData elem)
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
 	if (beforeSize == capacity)
 	{
-		return 0; // queue is full
+		return 0; /* queue is full */
 	}
 
 	ALGO_VALIDATE( algoQueueInsert(queue, elem) );
@@ -26,7 +26,7 @@ static int testQueueRemove(AlgoQueue queue, AlgoData *outElem)
 	if (beforeSize == 0)
 	{
 		outElem->asInt = -1;
-		return 0; // queue is empty
+		return 0; /* queue is empty */
 	}
 
 	ALGO_VALIDATE( algoQueueRemove(queue, outElem) );
@@ -40,19 +40,19 @@ static int testQueueRemove(AlgoQueue queue, AlgoData *outElem)
 int main(void)
 {
 	unsigned int randomSeed = (unsigned int)time(NULL);
-	printf("Random seed: 0x%08X\n", randomSeed);
-	srand(randomSeed);
-
-	// Test AlgoQueue
-	const int32_t kTestElemCount = 1024*1024;
-	const int32_t kQueueCapacity = 512 + (rand() % 1024);
+	int32_t kTestElemCount = 1024*1024;
+	int32_t kQueueCapacity;
 	void *queueBuffer = NULL;
 	size_t queueBufferSize = 0;
 	int32_t nextToAdd = 0, nextToCheck = 0;
 	AlgoQueue queue;
 	int32_t currentSize = -1;
+
+	printf("Random seed: 0x%08X\n", randomSeed);
+	srand(randomSeed);
 	printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
 
+	kQueueCapacity = 512 + (rand() % 1024);
 	ALGO_VALIDATE( algoQueueBufferSize(&queueBufferSize, kQueueCapacity) );
 	queueBuffer = malloc(queueBufferSize);
 	ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity, queueBuffer, queueBufferSize) );
@@ -60,7 +60,8 @@ int main(void)
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
 	assert(0 == currentSize);
 
-	// In this test, we alternate between adding a chunk of values to the end of the queue and removing a chunk from the front.
+	/* In this test, we alternate between adding a chunk of values to
+	   the end of the queue and removing a chunk from the front. */
 	while (nextToCheck < kTestElemCount)
 	{
 		const int32_t numAdds = 1 + (rand() % kQueueCapacity);
@@ -79,7 +80,7 @@ int main(void)
 			assert(currentSize <= kQueueCapacity);
 		}
 
-		// Make sure we can't add elements to a full queue
+		/* Make sure we can't add elements to a full queue. */
 		if (currentSize == kQueueCapacity)
 		{
 			AlgoError err = algoQueueInsert(queue, algoDataFromInt(0));
@@ -91,7 +92,7 @@ int main(void)
 			}
 		}
 
-		// Make sure we can't remove elements from an empty queue
+		/* Make sure we can't remove elements from an empty queue. */
 		if (currentSize == 0)
 		{
 			AlgoData elem;

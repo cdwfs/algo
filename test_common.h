@@ -26,4 +26,4 @@
 #define max(x,y) ((x)>(y))?(x):(y)
 #endif
 
-#endif // ALGO_TEST_COMMON_H
+#endif

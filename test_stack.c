@@ -9,7 +9,7 @@ static int testStackPush(AlgoStack stack, const AlgoData elem)
 	ALGO_VALIDATE( algoStackCurrentSize(stack, &beforeSize) );
 	if (beforeSize == capacity)
 	{
-		return 0; // stack is full
+		return 0; /* stack is full */
 	}
 
 	ALGO_VALIDATE( algoStackPush(stack, elem) );
@@ -26,7 +26,7 @@ static int testStackPop(AlgoStack stack, AlgoData *outElem)
 	if (beforeSize == 0)
 	{
 		outElem->asInt = -1;
-		return 0; // stack is empty
+		return 0; /* stack is empty */
 	}
 
 	ALGO_VALIDATE( algoStackPop(stack, outElem) );
@@ -40,18 +40,19 @@ static int testStackPop(AlgoStack stack, AlgoData *outElem)
 int main(void)
 {
 	unsigned int randomSeed = (unsigned int)time(NULL);
-	printf("Random seed: 0x%08X\n", randomSeed);
-	srand(randomSeed);
-
-	// Test AlgoStack
-	const int32_t kStackCapacity = 1 + (rand() % 1024);
+	int32_t kStackCapacity = 0;
 	void *stackBuffer = NULL;
 	size_t stackBufferSize = 0;
-	int32_t nextToAdd = 0, nextToCheck = kStackCapacity-1;
+	int32_t nextToAdd = 0, nextToCheck = 0;
 	AlgoStack stack;
 	int32_t currentSize = -1;
+
+	printf("Random seed: 0x%08X\n", randomSeed);
+	srand(randomSeed);
 	printf("Testing AlgoStack (capacity: %d)\n", kStackCapacity);
 
+	kStackCapacity = 1 + (rand() % 1024);
+	nextToCheck = kStackCapacity-1;
 	ALGO_VALIDATE( algoStackBufferSize(&stackBufferSize, kStackCapacity) );
 	stackBuffer = malloc(stackBufferSize);
 	ALGO_VALIDATE( algoStackCreate(&stack, kStackCapacity, stackBuffer, stackBufferSize) );
@@ -59,7 +60,7 @@ int main(void)
 	ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
 	assert(0 == currentSize);
 
-	// Make sure we can't remove elements from an empty stack
+	/* Make sure we can't remove elements from an empty stack. */
 	{
 		AlgoError err;
 		AlgoData elem;
@@ -74,13 +75,13 @@ int main(void)
 		}
 	}
 
-	// Fill the stack
+	/* Fill the stack. */
 	while (nextToAdd < kStackCapacity)
 	{
 		testStackPush(stack, algoDataFromInt(nextToAdd++));
 	}
 
-	// Make sure we can't add elements to a full stack
+	/* Make sure we can't add elements to a full stack. */
 	{
 		AlgoError err;
 		ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
@@ -94,7 +95,7 @@ int main(void)
 		}
 	}
 
-	// Empty the stack
+	/* Empty the stack. */
 	while (nextToCheck >= 0)
 	{
 		AlgoData elem = algoDataFromInt(-1);
@@ -108,7 +109,7 @@ int main(void)
 		nextToCheck -= 1;
 	}
 
-	// Make sure we can't remove elements from an empty stack
+	/* Make sure we can't remove elements from an empty stack. */
 	{
 		AlgoError err;
 		AlgoData elem;

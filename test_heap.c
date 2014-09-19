@@ -10,12 +10,11 @@ static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == capacity)
 	{
-		return 0; // heap is full
+		return 0; /* heap is full */
 	}
 	ALGO_VALIDATE( algoHeapInsert(heap, newKey, newData) );
 
-	// Not a heap requirement; just making sure it's a valid index for
-	// heapContents[].
+	/* Not a heap requirement; just making sure it's a valid index for heapContents[]. */
 	assert(newKey.asInt < capacity);
 	                           
 	heapContents[newKey.asInt] += 1;
@@ -37,25 +36,23 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
 	if (beforeSize == 0)
 	{
-		return 0; // heap is empty
+		return 0; /* heap is empty */
 	}
 	ALGO_VALIDATE( algoHeapPeek(heap, &minKeyPeek, &minDataPeek) );
 	ALGO_VALIDATE( algoHeapPop(heap, &minKey, &minData) );
-	// Peeked data should match popped data
+	/* Peeked data should match popped data */
 	assert(minKeyPeek.asInt == minKey.asInt);
 	assert(minDataPeek.asInt == minData.asInt);
-	// key and data must match (in this test environment)
+	/* key and data must match (in this test environment) */
 	assert(minKey.asInt == minData.asInt);
-	// Not a heap requirement; just making sure it's a valid index for
-	// heapContents[].
+	/* Not a heap requirement; just making sure it's a valid index for heapContents[]. */
 	assert(minKey.asInt < capacity);
-	// Make sure minKey is the smallest key in the heap (all counters below
-	// it must be zero).
+	/* Make sure minKey is the smallest key in the heap (all counters below it must be zero). */
 	for(iVal=0; iVal<minKey.asInt; ++iVal)
 	{
 		assert(heapContents[iVal] == 0);
 	}
-	// Make sure minKey is in the heap in the first place
+	/* Make sure minKey is in the heap in the first place */
 	assert(heapContents[minKey.asInt] > 0);
 
 	heapContents[minKey.asInt] -= 1;
@@ -69,19 +66,19 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 int main(void)
 {
 	unsigned int randomSeed = (unsigned int)time(NULL);
-	printf("Random seed: 0x%08X\n", randomSeed);
-	srand(randomSeed);
-
-	// Test AlgoHeap
 	const int32_t kHeapCapacity = 16*1024;
 	const int32_t kTestCount = 100;
-	int32_t *heapContents = heapContents = malloc(kHeapCapacity*sizeof(int32_t));
+	int32_t *heapContents = NULL;
 	void *heapBuffer = NULL;
 	size_t heapBufferSize = 0;
 	AlgoHeap heap;
 	int currentSize = 0;
 	int iHeapTest;
+	printf("Random seed: 0x%08X\n", randomSeed);
+	srand(randomSeed);
 	printf("Testing AlgoHeap (capacity: %d, test count: %d)\n", kHeapCapacity, kTestCount);
+
+	heapContents = malloc(kHeapCapacity*sizeof(int32_t));
 	memset(heapContents, 0, kHeapCapacity*sizeof(int32_t));
 
 	ALGO_VALIDATE( algoHeapBufferSize(&heapBufferSize, kHeapCapacity) );

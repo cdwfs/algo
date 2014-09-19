@@ -45,7 +45,7 @@ typedef enum AlgoError
 {
 	kAlgoErrorNone = 0,             /**< Function returned successfully; no errors occurred. */
 	kAlgoErrorInvalidArgument = 1,  /**< One or more function arguments were invalid (e.g. NULL pointer, negative size, etc.). */
-	kAlgoErrorOperationFailed = 2,  /**< The requested operation could not be performed (e.g. popping from an empty stack). */
+	kAlgoErrorOperationFailed = 2   /**< The requested operation could not be performed (e.g. popping from an empty stack). */
 } AlgoError;
 
 /**
@@ -228,37 +228,37 @@ ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 #ifdef __cplusplus
 }
 #endif
-//
-//
-////   end header file   /////////////////////////////////////////////////////
-#endif // ALGO_INCLUDE_H
+
+
+/*------   end header file  -------------------------------------------- */
+#endif /* ALGO_INCLUDE_H */
 
 #ifdef ALGO_IMPLEMENTATION
 
 #include <assert.h>
 #include <stdlib.h>
 
-///////////////////////////////////////////////////////
-// AlgoAllocPool
-///////////////////////////////////////////////////////
+/******************************************
+ * AlgoAllocPool
+ ******************************************/
 
 typedef struct AlgoAllocPoolImpl
 {
 	uint8_t *pool;
-	int32_t elementSize; // must be >= 4
-	int32_t elementCount; // must be > 0
-	int32_t headIndex; // if -1, pool is empty
+	int32_t elementSize; /* must be >= 4 */
+	int32_t elementCount; /* must be > 0 */
+	int32_t headIndex; /* if -1, pool is empty */
 } AlgoAllocPoolImpl;
 
 AlgoError algoAllocPoolBufferSize(size_t *outBufferSize, const int32_t elementSize, const int32_t elementCount)
 {
+	const size_t poolSize = elementCount*elementSize;
 	if (NULL == outBufferSize ||
 		elementSize < sizeof( int32_t) ||
 		elementCount < 1)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	const size_t poolSize = elementCount*elementSize;
 	*outBufferSize = sizeof(AlgoAllocPoolImpl) + poolSize;
 	return kAlgoErrorNone;
 }
@@ -268,6 +268,7 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 	size_t minBufferSize = 0;
 	AlgoError err;
 	uint8_t *bufferNext = (uint8_t*)buffer;
+	const size_t poolSize = elementCount*elementSize;
 	if (NULL == outAllocPool ||
 		elementSize < sizeof( (*outAllocPool)->headIndex) ||
 		elementCount < 1)
@@ -288,11 +289,10 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 	*outAllocPool = (AlgoAllocPoolImpl*)bufferNext;
 	bufferNext += sizeof(AlgoAllocPoolImpl);
 
-	const size_t poolSize = elementCount*elementSize;
 	(*outAllocPool)->pool = (uint8_t*)bufferNext;
 	bufferNext += poolSize;
 
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoAllocPoolBufferSize() is out of date
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoAllocPoolBufferSize() is out of date */
 
 	(*outAllocPool)->elementSize = elementSize;
 	(*outAllocPool)->elementCount = elementCount;
@@ -356,20 +356,16 @@ AlgoError algoAllocPoolElementSize(AlgoAllocPool allocPool, int32_t *outElementS
 }
 
 
-///////////////////////////////////////////////////////
-// AlgoStack
-///////////////////////////////////////////////////////
+/****************************************
+ * AlgoStack
+ ****************************************/
 
 typedef struct AlgoStackImpl
 {
 	AlgoData *nodes;
-	int32_t capacity; // Outside view of how many elements can be stored in the stack. Size of the nodes[] array.
-	int32_t top; // index of next empty element in the stack. top=0 -> empty stack. top=capacity -> full 
+	int32_t capacity; /* Outside view of how many elements can be stored in the stack. Size of the nodes[] array. */
+	int32_t top; /* index of next empty element in the stack. top=0 -> empty stack. top=capacity -> full */
 } AlgoStackImpl;
-
-// We never let the nodes array fill up completely.
-// if head == tail, that means the queue is empty.
-// if head = (tail+1) % nodeCount, the queue is full.
 
 static int iStackIsEmpty(const AlgoStack stack)
 {
@@ -381,8 +377,6 @@ static int iStackIsFull(const AlgoStack stack)
 	assert(NULL != stack);
 	return stack->top == stack->capacity;
 }
-
-///////////////////////////////////////////////////////
 
 AlgoError algoStackBufferSize(size_t *outBufferSize, int32_t stackCapacity)
 {
@@ -423,7 +417,7 @@ AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buff
 	(*outStack)->nodes = (AlgoData*)bufferNext;
 	bufferNext += (*outStack)->capacity * sizeof(AlgoData);
 	(*outStack)->top = 0;
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoStackBufferSize() is out of date
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoStackBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -477,22 +471,22 @@ AlgoError algoStackCurrentSize(const AlgoStack stack, int32_t *outSize)
 	return kAlgoErrorNone;
 }
 
-///////////////////////////////////////////////////////
-// AlgoQueue
-///////////////////////////////////////////////////////
+/*****************************************
+ * AlgoQueue
+ *****************************************/
 
 typedef struct AlgoQueueImpl
 {
 	AlgoData *nodes;
-	int32_t nodeCount; // Actual length of the nodes[] array.
-	int32_t capacity; // Outside view of how many elements can be stored in the queue.
-	int32_t head; // index of the next element to remove (if the queue isn't empty)
-	int32_t tail; // index of the first empty element past the end of the queue.
+	int32_t nodeCount; /* Actual length of the nodes[] array. */
+	int32_t capacity; /* Outside view of how many elements can be stored in the queue. */
+	int32_t head; /* index of the next element to remove (if the queue isn't empty) */
+	int32_t tail; /* index of the first empty element past the end of the queue. */
 } AlgoQueueImpl;
 
-// We never let the nodes array fill up completely.
-// if head == tail, that means the queue is empty.
-// if head = (tail+1) % nodeCount, the queue is full.
+/* We never let the nodes array fill up completely.
+   if head == tail, that means the queue is empty.
+   if head = (tail+1) % nodeCount, the queue is full. */
 
 static int iQueueIsEmpty(const AlgoQueue queue)
 {
@@ -504,8 +498,6 @@ static int iQueueIsFull(const AlgoQueue queue)
 	assert(NULL != queue);
 	return queue->head == (queue->tail+1) % queue->nodeCount;
 }
-
-///////////////////////////////////////////////////////
 
 AlgoError algoQueueBufferSize(size_t *outSize, int32_t queueCapacity)
 {
@@ -543,12 +535,12 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 	bufferNext += sizeof(AlgoQueueImpl);
 
 	(*outQueue)->capacity = queueCapacity;
-	(*outQueue)->nodeCount = queueCapacity+1; // tail is always an empty node
+	(*outQueue)->nodeCount = queueCapacity+1; /* tail is always an empty node. */
 	(*outQueue)->nodes = (AlgoData*)bufferNext;
 	bufferNext += (*outQueue)->nodeCount * sizeof(AlgoData);
 	(*outQueue)->head = 0;
 	(*outQueue)->tail = 0;
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoQueueBufferSize() is out of date
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoQueueBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -604,9 +596,9 @@ AlgoError algoQueueCurrentSize(const AlgoQueue queue, int32_t *outSize)
 	return kAlgoErrorNone;
 }
 
-/////////////////////////////////////////////
-// AlgoHeap
-/////////////////////////////////////////////
+/********************************************
+ * AlgoHeap
+ ********************************************/
 
 typedef struct AlgoHeapNode
 {
@@ -619,10 +611,10 @@ typedef struct AlgoHeapImpl
 	AlgoHeapNode *nodes;
 	AlgoHeapKeyCompareFunc keyCompare;
 	int32_t capacity;
-	int32_t nextEmpty; // 1-based; N's kids = 2*N and 2*N+1; N's parent = N/2
+	int32_t nextEmpty; /* 1-based; N's kids = 2*N and 2*N+1; N's parent = N/2 */
 } AlgoHeapImpl;
 
-///////////// Internal utilities
+/* Internal utilities */
 
 static const int32_t kAlgoHeapRootIndex = 1;
 
@@ -666,7 +658,7 @@ static void iHeapSwapNodes(AlgoHeap heap,
 	heap->nodes[index2] = tempNode;
 }
 
-//////////// public API functions
+/* public API functions */
 
 AlgoError algoHeapBufferSize(size_t *outSize, int32_t heapCapacity)
 {
@@ -707,7 +699,7 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoHeapKeyCom
 	(*outHeap)->keyCompare = keyCompare;
 	(*outHeap)->capacity = heapCapacity;
 	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); // If this fails, algoHeapBufferSize() is out of date
+	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoHeapBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -742,14 +734,14 @@ AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data)
 	}
 	if (iHeapCurrentSize(heap) >= heap->capacity)
 	{
-		return kAlgoErrorOperationFailed; // Can't insert if it's full!
+		return kAlgoErrorOperationFailed; /* Can't insert if it's full! */
 	}
-	// Insert new node at the end
+	/* Insert new node at the end. */
 	childIndex = heap->nextEmpty;
 	heap->nextEmpty += 1;
 	heap->nodes[childIndex].key  = key;
 	heap->nodes[childIndex].data = data;
-	// Bubble up
+	/* Bubble up. */
 	while(childIndex > kAlgoHeapRootIndex)
 	{
 		int32_t parentIndex = iHeapParentIndex(childIndex);
@@ -771,7 +763,7 @@ AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 	}
 	if (0 == iHeapCurrentSize(heap))
 	{
-		return kAlgoErrorOperationFailed; // Can't peek an empty heap
+		return kAlgoErrorOperationFailed; /* Can't peek an empty heap. */
 	}
 
 	if (NULL != outTopKey)
@@ -794,9 +786,9 @@ AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 	}
 	if (0 == iHeapCurrentSize(heap))
 	{
-		return kAlgoErrorOperationFailed; // Can't pop an empty heap
+		return kAlgoErrorOperationFailed; /* Can't pop an empty heap. */
 	}
-	// Store top element in output arguments
+	/* Store top element in output arguments */
 	if (NULL != outTopKey)
 	{
 		*outTopKey = heap->nodes[kAlgoHeapRootIndex].key;
@@ -805,10 +797,10 @@ AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 	{
 		*outTopData = heap->nodes[kAlgoHeapRootIndex].data;
 	}
-	// Overwrite top element
+	/* Overwrite top element. */
 	lastIndex = heap->nextEmpty-1;
 	heap->nodes[kAlgoHeapRootIndex] = heap->nodes[lastIndex];
-	// Bubble down
+	/* Bubble down. */
 	parentIndex = kAlgoHeapRootIndex;
 	leftChildIndex = iHeapLeftChildIndex(parentIndex);
 	while(leftChildIndex < heap->nextEmpty)
@@ -826,7 +818,7 @@ AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 		}
 		if (parentIndex == minKeyIndex)
 		{
-			break; // early out
+			break; /* early out */
 		}
 		iHeapSwapNodes(heap, parentIndex, minKeyIndex);
 		parentIndex = minKeyIndex;
@@ -839,26 +831,26 @@ AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 AlgoError algoHeapCheck(AlgoHeap heap)
 {
 	int32_t iNode;
-	// Basic tests
+	/* Basic tests */
 	if (NULL == heap ||
 		NULL == heap->nodes)
 	{
-		return kAlgoErrorInvalidArgument; // AlgoHeap pointer(s) are NULL
+		return kAlgoErrorInvalidArgument; /* AlgoHeap pointer(s) are NULL. */
 	}
 	if (heap->nextEmpty < kAlgoHeapRootIndex ||
 		heap->capacity < 0 ||
 		iHeapCurrentSize(heap) > heap->capacity)
 	{
-		return kAlgoErrorInvalidArgument; // AlgoHeap size/capacity are invalid
+		return kAlgoErrorInvalidArgument; /* AlgoHeap size/capacity are invalid. */
 	}
 	if (iHeapCurrentSize(heap) == 0)
 	{
-		return kAlgoErrorNone; // Empty heaps are valid
+		return kAlgoErrorNone; /* Empty heaps are valid. */
 	}
-	// This is mainly here to prevent warnings about an unused function.
+	/* This is mainly here to prevent warnings about an unused function. */
 	(void)iHeapIsNodeValid(heap, kAlgoHeapRootIndex);
 
-	// Recursively test all nodes to verify the heap condition holds.
+	/* Recursively test all nodes to verify the heap condition holds. */
 	for(iNode=kAlgoHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
 	{
 		int32_t parentIndex = iHeapParentIndex(iNode);
@@ -871,4 +863,4 @@ AlgoError algoHeapCheck(AlgoHeap heap)
 	return kAlgoErrorNone;
 }
 
-#endif // ALGO_IMPLEMENTATION
+#endif /* ALGO_IMPLEMENTATION */

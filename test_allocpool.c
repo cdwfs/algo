@@ -32,7 +32,7 @@ static int isAllocationValid(const Allocation *alloc)
 	int32_t iByte, iMax;
 	if (NULL == alloc->block)
 	{
-		return 1; // NULL allocations are valid
+		return 1; /* NULL allocations are valid. */
 	}
 	for(iByte=0,iMax=alloc->blockBytes; iByte<iMax; ++iByte)
 	{
@@ -48,7 +48,7 @@ int main(void)
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
 
-	// Test AlgoAllocPool
+	/* Test AlgoAllocPool */
 	for(;;)
 	{
 		AlgoAllocPool allocPool;
@@ -70,7 +70,7 @@ int main(void)
 		}
 		for(iTest=0; iTest<1000; ++iTest)
 		{
-			// Allocate roughly half the available blocks
+			/* Allocate roughly half the available blocks */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				if (rand() & 1)
@@ -85,7 +85,7 @@ int main(void)
 					allocationSetBlock(allocations+iAlloc, block, elemSize);
 				}
 			}
-			// Validate allocations
+			/* Validate allocations */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				if (!isAllocationValid(allocations+iAlloc))
@@ -96,7 +96,7 @@ int main(void)
 					assert(0);
 				}
 			}
-			// Free half the previous allocations
+			/* Free half the previous allocations */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				if (NULL != allocations[iAlloc].block && (rand() & 1))
@@ -105,7 +105,7 @@ int main(void)
 					allocationSetBlock(allocations+iAlloc, NULL, 0);
 				}
 			}
-			// Validate allocations
+			/* Validate allocations */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				if (!isAllocationValid(allocations+iAlloc))
@@ -116,7 +116,7 @@ int main(void)
 					assert(0);
 				}
 			}
-			// Allocate all remaining blocks
+			/* Allocate all remaining blocks */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				if (NULL == allocations[iAlloc].block)
@@ -131,7 +131,7 @@ int main(void)
 					allocationSetBlock(allocations+iAlloc, block, elemSize);
 				}
 			}
-			// Validate allocations
+			/* Validate allocations */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				if (!isAllocationValid(allocations+iAlloc))
@@ -142,7 +142,7 @@ int main(void)
 					assert(0);
 				}
 			}
-			// Attempt one more allocation, which SHOULD fail
+			/* Attempt one more allocation, which SHOULD fail */
 			{
 				void *shouldBeNull = algoAllocPoolAlloc(allocPool);
 				if (NULL != shouldBeNull)
@@ -152,7 +152,7 @@ int main(void)
 					assert(0);
 				}
 			}
-			// Free all allocations
+			/* Free all allocations */
 			for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 			{
 				ALGO_VALIDATE( algoAllocPoolFree(allocPool, allocations[iAlloc].block) );
