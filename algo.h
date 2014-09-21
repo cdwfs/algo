@@ -234,6 +234,30 @@ ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 /** @brief Retrieves the number of elements currently stored in the heap. */
 ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 
+/**
+ * Implements a generic graph structure
+ */
+typedef struct AlgoGraphImpl *AlgoGraph;
+
+typedef enum AlgoGraphEdgeMode
+{
+	kAlgoGraphEdgeUndirected = 0,
+	kAlgoGraphEdgeDirected   = 1,
+} AlgoGraphEdgeMode;
+
+ALGODEF AlgoError algoGraphBufferSize(size_t *outBufferSize, int32_t vertexCapacity, int32_t edgeCapacity,
+	const AlgoGraphEdgeMode edgeMode);
+ALGODEF AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t edgeCapacity,
+	const AlgoGraphEdgeMode edgeMode, void *buffer, size_t bufferSize);
+
+ALGODEF AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outVertexId);
+ALGODEF AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId);
+ALGODEF AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
+ALGODEF AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
+ALGODEF AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int32_t *outDegree);
+ALGODEF AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, int32_t vertexDegree, int32_t outDestVertexIds[]);
+ALGODEF AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData);
+
 #ifdef __cplusplus
 }
 #endif
@@ -246,6 +270,7 @@ ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 /******************************************
  * AlgoAllocPool
@@ -874,5 +899,281 @@ AlgoError algoHeapCheck(AlgoHeap heap)
 	}
 	return kAlgoErrorNone;
 }
+
+/************************************************
+ * AlgoGraph
+ ************************************************/
+
+typedef struct AlgoGraphEdge
+{
+	int32_t destVertex; /* Adjacency info */
+	int32_t weight;
+	struct AlgoGraphEdge *next;
+} AlgoGraphEdge;
+
+typedef struct AlgoGraphImpl
+{
+	int32_t *degree; /* degree (outgoing edge count) per vertex. Unused/invalid vertices have a degree of -1. */
+	AlgoData *vertexData; /* Arbitrary per-vertex data. One element per vertex. Unused elements used as a free list of unused vertices. */
+	AlgoGraphEdge **edges; /* One edge list per vertex. */
+	AlgoAllocPool edgePool; /* pool from which edges are allocated. */
+	int32_t vertexCapacity;
+	int32_t edgeCapacity;
+	int32_t vertexCount; /* 0..vertexCapacity */
+	int32_t edgeCount; /* 0..edgeCapacity */
+	int32_t nextFreeVertexId; /* Used to manage the unused vertex pool in vertexData[] */
+	AlgoGraphEdgeMode edgeMode;
+} AlgoGraphImpl;
+
+AlgoError algoGraphBufferSize(size_t *outBufferSize, int32_t vertexCapacity, int32_t edgeCapacity,
+	const AlgoGraphEdgeMode edgeMode)
+{
+	AlgoError err;
+	const size_t degreeSize     = vertexCapacity * sizeof(int32_t);
+	const size_t vertexDataSize = vertexCapacity * sizeof(AlgoData);
+	const size_t edgesSize      = vertexCapacity * sizeof(AlgoGraphEdge*); /* one edge list per vertex */
+	const size_t nodesPerEdge = (edgeMode == kAlgoGraphEdgeDirected) ? 1 : 2; /* undirected edges store two nodes: x->y and y->x */
+	size_t edgePoolSize = 0;
+	if (NULL == outBufferSize ||
+		vertexCapacity < 0 ||
+		edgeCapacity < 0)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	err = algoAllocPoolBufferSize(&edgePoolSize, sizeof(AlgoGraphEdge), edgeCapacity/nodesPerEdge);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	*outBufferSize = sizeof(AlgoGraphImpl) + degreeSize + vertexDataSize + edgesSize + edgePoolSize;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t edgeCapacity,
+	const AlgoGraphEdgeMode edgeMode, void *buffer, size_t bufferSize)
+{
+	size_t minBufferSize = 0;
+	AlgoError err;
+	if (NULL == outGraph ||
+		vertexCapacity <= 0 ||
+		edgeCapacity <= 0)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	err = algoGraphBufferSize(&minBufferSize, vertexCapacity, edgeCapacity, edgeMode);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	if (NULL == buffer ||
+		bufferSize < minBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	uint8_t *bufferNext = (uint8_t*)buffer;
+	*outGraph = (AlgoGraphImpl*)bufferNext;
+	bufferNext += sizeof(AlgoGraphImpl);
+
+
+	const size_t degreeSize = vertexCapacity * sizeof(int32_t);
+	(*outGraph)->degree = (int32_t*)bufferNext;
+	bufferNext += degreeSize;
+
+	const size_t vertexDataSize = vertexCapacity * sizeof(AlgoData);
+	(*outGraph)->vertexData = (AlgoData*)bufferNext;
+	{
+		int32_t iVert;
+		for(iVert=0; iVert<vertexCapacity-1; iVert += 1)
+		{
+			(*outGraph)->vertexData[iVert].asInt = iVert+1;
+		}
+		(*outGraph)->vertexData[vertexCapacity-1].asInt = -1;
+	}
+	bufferNext += vertexDataSize;
+
+
+	const size_t edgesSize = vertexCapacity*sizeof(AlgoGraphEdge*); /* one linked list per vertex */
+	(*outGraph)->edges = (AlgoGraphEdge**)bufferNext;
+	bufferNext += edgesSize;
+
+	const size_t nodesPerEdge = (edgeMode == kAlgoGraphEdgeDirected) ? 1 : 2; /* undirected edges store two nodes: x->y and y->x */
+	size_t edgePoolSize = 0;
+	err = algoAllocPoolBufferSize(&edgePoolSize, sizeof(AlgoGraphEdge), edgeCapacity/nodesPerEdge);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	err = algoAllocPoolCreate(&((*outGraph)->edgePool), sizeof(AlgoGraphEdge), edgeCapacity/nodesPerEdge, bufferNext, edgePoolSize);
+	bufferNext += edgePoolSize;
+
+
+	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBufferSize() is out of date. */
+
+	memset( (*outGraph)->edges, 0, edgesSize ); /* initialize all vertex edge lists to empty */
+	memset( (*outGraph)->degree, 0xFF, degreeSize ); /* initialize all vertex degrees to -1 (patently invalid */
+
+	(*outGraph)->vertexCapacity = vertexCapacity;
+	(*outGraph)->edgeCapacity   =   edgeCapacity;
+	(*outGraph)->vertexCount = 0;
+	(*outGraph)->edgeCount   = 0;
+	(*outGraph)->edgeMode    = edgeMode;
+	(*outGraph)->nextFreeVertexId = 0;
+
+	return kAlgoErrorNone;
+}
+
+AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int32_t *outDegree)
+{
+	if (NULL == graph ||
+		NULL == outDegree ||
+		vertexId < 0 ||
+		vertexId > graph->vertexCapacity ||
+		graph->degree[vertexId] == -1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outDegree = graph->degree[vertexId];
+	assert( *outDegree >= 0); /* testing against upper bound is more complicated... */
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, int32_t vertexDegree, int32_t outDestVertexIds[])
+{
+	const AlgoGraphEdge *nextEdge;
+	int32_t edgeCount;
+	if (NULL == graph ||
+		NULL == outDestVertexIds ||
+		srcVertexId < 0 ||
+		srcVertexId > graph->vertexCapacity ||
+		vertexDegree != graph->degree[srcVertexId])
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	nextEdge = graph->edges[srcVertexId];
+	edgeCount = graph->degree[srcVertexId];
+	for(int32_t iEdge=0; iEdge<edgeCount; iEdge += 1)
+	{
+		assert(NULL != nextEdge); /* unexpected end of edge list */
+		outDestVertexIds[iEdge] = nextEdge->destVertex;
+		nextEdge = nextEdge->next;
+	}
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData)
+{
+	if (NULL == graph ||
+		NULL == outData ||
+		vertexId < 0 ||
+		vertexId > graph->vertexCapacity ||
+		graph->degree[vertexId] == -1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outData = graph->vertexData[vertexId];
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outVertexId)
+{
+	int32_t newVertexId;
+	if (NULL == graph)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	if (graph->vertexCount >= graph->vertexCapacity)
+	{
+		return kAlgoErrorOperationFailed;
+	}
+	newVertexId = graph->nextFreeVertexId;
+	assert(newVertexId >= 0 && newVertexId < graph->vertexCapacity); /* <0 means the vertex pool is empty */
+	graph->nextFreeVertexId = graph->vertexData[newVertexId].asInt;
+	if (NULL != outVertexId)
+	{
+		*outVertexId = newVertexId;
+	}
+	graph->degree[newVertexId] = 0;
+	graph->edges[newVertexId] = 0;
+	graph->vertexData[newVertexId] = vertexData;
+	graph->vertexCount += 1;
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
+{
+	(void)graph;
+	(void)vertexId;
+	return kAlgoErrorOperationFailed; /* Currently unsupported */
+}
+AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId)
+{
+	if (NULL == graph ||
+		srcVertexId < 0  || srcVertexId  >= graph->vertexCount || graph->degree[srcVertexId]  == -1 ||
+		destVertexId < 0 || destVertexId >= graph->vertexCount || graph->degree[destVertexId] == -1 ||
+		srcVertexId == destVertexId /* no self-connecting edges */
+		)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	{
+		AlgoGraphEdge *newEdge = (AlgoGraphEdge*)algoAllocPoolAlloc(graph->edgePool);
+		if (NULL == newEdge)
+		{
+			return kAlgoErrorOperationFailed; /* exceeded edge capacity */
+		}
+		newEdge->weight = 0;
+		newEdge->destVertex = destVertexId;
+		newEdge->next = graph->edges[srcVertexId];
+		graph->edges[srcVertexId] = newEdge;
+		graph->degree[srcVertexId] += 1;
+	}
+
+	if (graph->edgeMode == kAlgoGraphEdgeUndirected)
+	{
+		/* Add a second edge in the opposite direction */
+		AlgoGraphEdge *newEdge = (AlgoGraphEdge*)algoAllocPoolAlloc(graph->edgePool);
+		if (NULL == newEdge)
+		{
+			/* TODO: free previous edge? or just assert that this can't happen? */
+			return kAlgoErrorOperationFailed; /* exceeded edge capacity */
+		}
+		newEdge->weight = 0;
+		newEdge->destVertex = srcVertexId;
+		newEdge->next = graph->edges[destVertexId];
+		graph->edges[destVertexId] = newEdge;
+		graph->degree[destVertexId] += 1;
+	}
+	else
+	{
+		/* As implemented, this counts "logical" edges, not actual AlgoGraphEdge objects. An undirected
+		   edge will allocate two AlgoGraphEdge objects, but only increment this value once. That seems
+		   unwise. */
+		graph->edgeCount += 1;
+	}
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId)
+{
+	(void)graph;
+	(void)srcVertexId;
+	(void)destVertexId;
+	return kAlgoErrorOperationFailed; /* Currently unsupported */
+}
+
+#if 0
+AlgoError algoGraphTraverseBfs(AlgoGraph graph)
+{
+	const size_t processedSize = graph->vertexCount*sizeof(bool);
+	bool *processed = malloc(processedSize);
+	memset(processed, 0, processedSize);
+
+	const size_t discoveredSize = graph->vertexCount*sizeof(bool);
+	bool *discovered = malloc(discoveredSize);
+	memset(discovered, 0, discoveredSize);
+
+	const size_t parentSize = graph->vertexCount*sizeof(int32_t);
+	int32_t *parent = malloc(parentSize);
+	memset(parent, 0xFF, parentSize);
+
+	return kAlgoErrorOperationFailed;
+}
+#endif
 
 #endif /* ALGO_IMPLEMENTATION */
