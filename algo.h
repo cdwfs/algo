@@ -249,7 +249,10 @@ ALGODEF AlgoError algoGraphBufferSize(size_t *outBufferSize, int32_t vertexCapac
 	const AlgoGraphEdgeMode edgeMode);
 ALGODEF AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t edgeCapacity,
 	const AlgoGraphEdgeMode edgeMode, void *buffer, size_t bufferSize);
-
+ALGODEF AlgoError algoGraphCurrentVertexCount(const AlgoGraph graph, int32_t *outCount);
+ALGODEF AlgoError algoGraphVertexCapacity(const AlgoGraph graph, int32_t *outCapacity);
+ALGODEF AlgoError algoGraphCurrentEdgeCount(const AlgoGraph graph, int32_t *outCount);
+ALGODEF AlgoError algoGraphEdgeCapacity(const AlgoGraph graph, int32_t *outCapacity);
 ALGODEF AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outVertexId);
 ALGODEF AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId);
 ALGODEF AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
@@ -1022,6 +1025,48 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 
 	return kAlgoErrorNone;
 }
+
+AlgoError algoGraphCurrentVertexCount(const AlgoGraph graph, int32_t *outCount)
+{
+	if (NULL == graph ||
+		NULL == outCount)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outCount = graph->vertexCount;
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphVertexCapacity(const AlgoGraph graph, int32_t *outCapacity)
+{
+	if (NULL == graph ||
+		NULL == outCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outCapacity = graph->vertexCapacity;
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphCurrentEdgeCount(const AlgoGraph graph, int32_t *outCount)
+{
+	if (NULL == graph ||
+		NULL == outCount)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outCount = graph->edgeCount;
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphEdgeCapacity(const AlgoGraph graph, int32_t *outCapacity)
+{
+	if (NULL == graph ||
+		NULL == outCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outCapacity = graph->edgeCapacity;
+	return kAlgoErrorNone;
+}
+
 
 AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int32_t *outDegree)
 {
