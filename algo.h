@@ -1085,7 +1085,7 @@ AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int3
 AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, int32_t vertexDegree, int32_t outDestVertexIds[])
 {
 	const AlgoGraphEdge *nextEdge;
-	int32_t edgeCount;
+	int32_t edgeCount, iEdge;
 	if (NULL == graph ||
 		NULL == outDestVertexIds ||
 		srcVertexId < 0 ||
@@ -1096,12 +1096,13 @@ AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, in
 	}
 	nextEdge = graph->edges[srcVertexId];
 	edgeCount = graph->degree[srcVertexId];
-	for(int32_t iEdge=0; iEdge<edgeCount; iEdge += 1)
+	for(iEdge=0; iEdge<edgeCount; iEdge += 1)
 	{
-		assert(NULL != nextEdge); /* unexpected end of edge list */
+		assert(NULL != nextEdge); /* edge list is shorter than expected! */
 		outDestVertexIds[iEdge] = nextEdge->destVertex;
 		nextEdge = nextEdge->next;
 	}
+	assert(NULL == nextEdge); /* edge list is longer than expected! */
 	return kAlgoErrorNone;
 }
 AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData)
@@ -1185,13 +1186,12 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 		graph->edges[destVertexId] = newEdge;
 		graph->degree[destVertexId] += 1;
 	}
-	else
-	{
-		/* As implemented, this counts "logical" edges, not actual AlgoGraphEdge objects. An undirected
-		   edge will allocate two AlgoGraphEdge objects, but only increment this value once. That seems
-		   unwise. */
-		graph->edgeCount += 1;
-	}
+
+	/* As implemented, this counts "logical" edges, not actual AlgoGraphEdge objects. An undirected
+		edge will allocate two AlgoGraphEdge objects, but only increment this value once. That seems
+		unwise. */
+	graph->edgeCount += 1;
+
 	return kAlgoErrorNone;
 }
 AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId)
