@@ -10,6 +10,7 @@ typedef struct Allocation
 
 static void allocationInit(Allocation *outAlloc, int32_t id)
 {
+	(void)id;
 	outAlloc->blockBytes = 0;
 	outAlloc->byte = rand() & 0xFF;
 	outAlloc->block = NULL;
