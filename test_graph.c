@@ -67,8 +67,8 @@ int main(void)
 
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
-	kVertexCapacity = 16*1024;
-	kEdgeCapacity = 16*1024;
+	kVertexCapacity = kNumPeople;
+	kEdgeCapacity = 8;
 	edgeMode = kAlgoGraphEdgeUndirected; /*(rand() % 2) ? kAlgoGraphEdgeDirected : kAlgoGraphEdgeUndirected; */
 	printf("Testing AlgoGraph (vertexCapacity: %d, edgeCapacity: %d, test count: %d)\n", kVertexCapacity, kEdgeCapacity, kTestCount);
 
