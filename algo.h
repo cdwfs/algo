@@ -1159,8 +1159,9 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 		return kAlgoErrorInvalidArgument;
 	}
 	{
-		AlgoGraphEdge *newEdge = (AlgoGraphEdge*)algoAllocPoolAlloc(graph->edgePool);
-		if (NULL == newEdge)
+		AlgoGraphEdge *newEdge = NULL;
+		AlgoError err = algoAllocPoolAlloc(graph->edgePool, &newEdge);
+		if (err != kAlgoErrorNone)
 		{
 			return kAlgoErrorOperationFailed; /* exceeded edge capacity */
 		}
@@ -1174,8 +1175,9 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 	if (graph->edgeMode == kAlgoGraphEdgeUndirected)
 	{
 		/* Add a second edge in the opposite direction */
-		AlgoGraphEdge *newEdge = (AlgoGraphEdge*)algoAllocPoolAlloc(graph->edgePool);
-		if (NULL == newEdge)
+		AlgoGraphEdge *newEdge = NULL;
+		AlgoError err = algoAllocPoolAlloc(graph->edgePool, &newEdge);
+		if (err != kAlgoErrorNone)
 		{
 			/* TODO: free previous edge? or just assert that this can't happen? */
 			return kAlgoErrorOperationFailed; /* exceeded edge capacity */
