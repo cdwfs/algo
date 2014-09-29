@@ -80,8 +80,8 @@ ALGODEF AlgoError algoAllocPoolBufferSize(size_t *outBufferSize, const int32_t e
 	*/
 ALGODEF AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t elementSize, const int32_t elementCount,
 	void *buffer, const size_t bufferSize);
-/** @brief Allocates one element from the pool, and returns a pointer to it. Returns NULL if no elements are available. */
-ALGODEF void *algoAllocPoolAlloc(AlgoAllocPool allocPool);
+/** @brief Allocates one element from the pool, and returns a pointer to it. */
+ALGODEF AlgoError algoAllocPoolAlloc(AlgoAllocPool allocPool, void **outPtr);
 /** @brief Frees an element previously allocated by algoAllocPoolAlloc(). */
 ALGODEF AlgoError algoAllocPoolFree(AlgoAllocPool allocPool, void *p);
 /** @brief Queries the element size of a pool allocator. */
@@ -313,18 +313,21 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 	return kAlgoErrorNone;
 }
 
-void *algoAllocPoolAlloc(AlgoAllocPool allocPool)
+AlgoError algoAllocPoolAlloc(AlgoAllocPool allocPool, void **outPtr)
 {
-	uint8_t *elem = NULL;
 	if (NULL == allocPool ||
-		allocPool->headIndex == -1)
+		NULL == outPtr)
 	{
-		return NULL;
+		return kAlgoErrorInvalidArgument;
+	}
+	if (allocPool->headIndex == -1)
+	{
+		return kAlgoErrorOperationFailed;
 	}
 
-	elem = allocPool->pool + allocPool->headIndex * allocPool->elementSize;
-	allocPool->headIndex = *(int32_t*)elem;
-	return elem;
+	*outPtr = (void*)(allocPool->pool + allocPool->headIndex * allocPool->elementSize);
+	allocPool->headIndex = *(int32_t*)(*outPtr);
+	return kAlgoErrorNone;
 }
 
 AlgoError algoAllocPoolFree(AlgoAllocPool allocPool, void *p)

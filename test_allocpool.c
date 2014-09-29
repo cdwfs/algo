@@ -76,7 +76,8 @@ int main(void)
 			{
 				if (rand() & 1)
 				{
-					void *block = algoAllocPoolAlloc(allocPool);
+					void *block = NULL;
+					ALGO_VALIDATE( algoAllocPoolAlloc(allocPool, &block) );
 					if(NULL == block)
 					{
 						printf("\tERROR: shouldn't be returning NULL in the first round of allocations...\n");
@@ -122,7 +123,8 @@ int main(void)
 			{
 				if (NULL == allocations[iAlloc].block)
 				{
-					void *block = algoAllocPoolAlloc(allocPool);
+					void *block = NULL;
+					ALGO_VALIDATE( algoAllocPoolAlloc(allocPool, &block) );
 					if(NULL == block)
 					{
 						printf("\tERROR: shouldn't be returning NULL in the second round of allocations...\n");
@@ -145,8 +147,10 @@ int main(void)
 			}
 			/* Attempt one more allocation, which SHOULD fail */
 			{
-				void *shouldBeNull = algoAllocPoolAlloc(allocPool);
-				if (NULL != shouldBeNull)
+				void *shouldBeNull = NULL;
+				AlgoError err = algoAllocPoolAlloc(allocPool, &shouldBeNull);
+				if (NULL != shouldBeNull ||
+					kAlgoErrorNone == err)
 				{
 					printf("\tERROR: Allocation succeeded from full pool! ptr=%p\n", shouldBeNull);
 					++errorCount;
