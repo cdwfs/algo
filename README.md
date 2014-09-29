@@ -11,11 +11,21 @@ in the world has already written this code; many of them probably did a better j
 If you're looking for quality code, I recommend using theirs instead.
 
 Currently includes:
-- stack
-- queue
-- heap / priority queue
-- pool allocator
+- stack (last in, first out)
+- queue (first in, first out)
+- heap / priority queue (log-N insertion, log-N removal of highest-priority element)
+- pool allocator (dynamic memory allocation of fixed-size elements).
 
 On deck:
 - hash table
-- graph
+- graph (vertex and edge management, plus flexible breadth-first and depth-first searches)
+
+Key Features / Design Goals
+---------------------------
+- **No dynamic memory allocations**: all data structures let the user place a strict upper bound on their capacity/usage,
+  and then work entirely within a user-provided buffer of the appropriate size.
+- **No (mandatory) external dependencies**: only standard C library functions are used, and even these can be overridden with
+  custom implementations through #defines if desired.
+- **Robust API**: all function inputs are validated. A mechanism to disable this validation is planned, but not yet implemented.
+  All functions should return without side effects if an error occurs (not 100% guaranteed yet, but that's the goal).
+
