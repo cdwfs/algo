@@ -986,7 +986,7 @@ AlgoError algoGraphBufferSize(size_t *outBufferSize, int32_t vertexCapacity, int
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	err = algoAllocPoolBufferSize(&edgePoolSize, sizeof(AlgoGraphEdge), edgeCapacity/nodesPerEdge);
+	err = algoAllocPoolBufferSize(&edgePoolSize, sizeof(AlgoGraphEdge), edgeCapacity*nodesPerEdge);
 	if (err != kAlgoErrorNone)
 	{
 		return err;
@@ -1045,12 +1045,12 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 
 	const size_t nodesPerEdge = (edgeMode == kAlgoGraphEdgeDirected) ? 1 : 2; /* undirected edges store two nodes: x->y and y->x */
 	size_t edgePoolSize = 0;
-	err = algoAllocPoolBufferSize(&edgePoolSize, sizeof(AlgoGraphEdge), edgeCapacity/nodesPerEdge);
+	err = algoAllocPoolBufferSize(&edgePoolSize, sizeof(AlgoGraphEdge), edgeCapacity*nodesPerEdge);
 	if (err != kAlgoErrorNone)
 	{
 		return err;
 	}
-	err = algoAllocPoolCreate(&((*outGraph)->edgePool), sizeof(AlgoGraphEdge), edgeCapacity/nodesPerEdge, bufferNext, edgePoolSize);
+	err = algoAllocPoolCreate(&((*outGraph)->edgePool), sizeof(AlgoGraphEdge), edgeCapacity*nodesPerEdge, bufferNext, edgePoolSize);
 	bufferNext += edgePoolSize;
 
 
@@ -1233,8 +1233,7 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 	}
 
 	/* As implemented, this counts "logical" edges, not actual AlgoGraphEdge objects. An undirected
-		edge will allocate two AlgoGraphEdge objects, but only increment this value once. That seems
-		unwise. */
+		edge will allocate two AlgoGraphEdge objects, but only increment this value once. */
 	graph->currentEdgeCount += 1;
 
 	return kAlgoErrorNone;
@@ -1343,7 +1342,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId,
 	}
 	bufferNext += queueSize;
 
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoGraphBfsBufferSize() is out of date */
+	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBfsBufferSize() is out of date */
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
