@@ -287,13 +287,13 @@ ALGODEF AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph 
 /** @brief Perform a breadth-first search on a graph.
 	@param graph The graph to search.
 	@param rootVertexId starting from the specified root vertex.
-	@param outVertexParents The parent of each vertex will be stored in this array, which must be large enough for the graph's
+	@param outVertexParents If non-NULL, the parent of each vertex will be stored in this array, which must be large enough for the graph's
 	                        maximum vertex capacity. The parent of the root vertex, vertices not connected to the root vertex,
 							or invalid vertices will be -1.
 	@param vertexParentCount The outVertexParents[] array must contain at least this many elements. This value should match the
-	                         graph's maximum vertex capacity.
-	@param vertexFuncEarly If non-NULL, this function will be called on each vertex when it is first encountered during the search.
-	@param edgeFunc If non-NULL, this function will be called on each edge when it is first encountered during the search. For undirected
+	                         graph's maximum vertex capacity. If outVertexParents is NULL, this parameter is ignored.
+	@param vertexFuncEarly If non-NULL, this function will be called on each vertex when it is first encountered during the traversal.
+	@param edgeFunc If non-NULL, this function will be called on each edge when it is first encountered during the traversal. For undirected
 	                graphs, the function will only be called once per pair of connected vertices.
 	@param vertexFuncLate If non-NULL, this function will be called on each vertex after all of its edges have been explored.
 	@param buffer Used for temporary storage during the search.
@@ -1304,8 +1304,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId,
 	AlgoError err;
 	uint8_t *bufferNext = (uint8_t*)buffer;
 	if (NULL == graph ||
-		NULL == outVertexParents ||
-		vertexParentCount > (size_t)graph->vertexCapacity ||
+		(NULL != outVertexParents && vertexParentCount < (size_t)graph->vertexCapacity) ||
 		rootVertexId < 0 ||
 		rootVertexId >= graph->vertexCapacity ||
 		graph->degree[rootVertexId] == -1)
@@ -1348,7 +1347,10 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId,
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
-	ALGO_MEMSET(outVertexParents, 0xFF, vertexParentCount*sizeof(int32_t));
+	if (NULL != outVertexParents)
+	{
+		ALGO_MEMSET(outVertexParents, 0xFF, vertexParentCount*sizeof(int32_t));
+	}
 	err = algoQueueInsert(vertexQueue, algoDataFromInt(rootVertexId));
 	iSetBit(discovered, vertexCapacityRounded, rootVertexId);
 	int32_t currentQueueSize = 1;
@@ -1385,7 +1387,10 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId,
 			{
 				iSetBit(discovered, vertexCapacityRounded, v1);
 				err = algoQueueInsert(vertexQueue, algoDataFromInt(v1));
-				outVertexParents[v1] = v0;
+				if (NULL != outVertexParents)
+				{
+					outVertexParents[v1] = v0;
+				}
 			}
 			e = e->next;
 		}
