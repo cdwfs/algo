@@ -292,7 +292,7 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 	(*outAllocPool)->pool = (uint8_t*)bufferNext;
 	bufferNext += poolSize;
 
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoAllocPoolBufferSize() is out of date */
+	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoAllocPoolBufferSize() is out of date */
 
 	(*outAllocPool)->elementSize = elementSize;
 	(*outAllocPool)->elementCount = elementCount;
@@ -420,7 +420,7 @@ AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buff
 	(*outStack)->nodes = (AlgoData*)bufferNext;
 	bufferNext += (*outStack)->capacity * sizeof(AlgoData);
 	(*outStack)->top = 0;
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoStackBufferSize() is out of date. */
+	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoStackBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -543,7 +543,7 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 	bufferNext += (*outQueue)->nodeCount * sizeof(AlgoData);
 	(*outQueue)->head = 0;
 	(*outQueue)->tail = 0;
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoQueueBufferSize() is out of date. */
+	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoQueueBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -702,7 +702,7 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoHeapKeyCom
 	(*outHeap)->keyCompare = keyCompare;
 	(*outHeap)->capacity = heapCapacity;
 	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
-	assert( (uintptr_t)bufferNext - (uintptr_t)buffer == minBufferSize ); /* If this fails, algoHeapBufferSize() is out of date. */
+	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoHeapBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
