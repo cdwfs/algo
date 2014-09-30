@@ -1268,10 +1268,79 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 }
 AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId)
 {
-	(void)graph;
-	(void)srcVertexId;
-	(void)destVertexId;
-	return kAlgoErrorOperationFailed; /* Currently unsupported */
+	if (NULL == graph ||
+		0 == iIsValidGraphVertexId(graph, srcVertexId) ||
+		0 == iIsValidGraphVertexId(graph, destVertexId))
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	{
+		/* Remove src->dest */
+		int found = 0;
+		AlgoGraphEdge *edge = graph->edges[srcVertexId];
+		if (edge == NULL)
+			return kAlgoErrorOperationFailed; /* srcVertexId has no edges */
+		else if (edge->destVertex == destVertexId)
+		{
+			graph->edges[srcVertexId] = edge->next;
+			algoAllocPoolFree(graph->edgePool, edge);
+			found = 1;
+		}
+		else
+		{
+			while(NULL != edge->next)
+			{
+				if (edge->next->destVertex == destVertexId)
+				{
+					AlgoGraphEdge *toFree = edge->next;
+					edge->next = toFree->next;
+					algoAllocPoolFree(graph->edgePool, toFree);
+					found = 1;
+					break;
+				}
+				edge = edge->next;
+			}
+		}
+		if (!found)
+			return kAlgoErrorOperationFailed;
+		graph->degree[srcVertexId] -= 1;
+	}
+
+	if (kAlgoGraphEdgeUndirected == graph->edgeMode)
+	{
+		/* Remove dest->src */
+		int found = 0;
+		AlgoGraphEdge *edge = graph->edges[destVertexId];
+		if (edge == NULL)
+			return kAlgoErrorOperationFailed; /* srcVertexId has no edges */
+		else if (edge->destVertex == srcVertexId)
+		{
+			graph->edges[destVertexId] = edge->next;
+			algoAllocPoolFree(graph->edgePool, edge);
+			found = 1;
+		}
+		else
+		{
+			while(NULL != edge->next)
+			{
+				if (edge->next->destVertex == srcVertexId)
+				{
+					AlgoGraphEdge *toFree = edge->next;
+					edge->next = toFree->next;
+					algoAllocPoolFree(graph->edgePool, toFree);
+					found = 1;
+					break;
+				}
+				edge = edge->next;
+			}
+		}
+		if (!found)
+			return kAlgoErrorOperationFailed;
+		graph->degree[destVertexId] -= 1;
+	}
+	graph->currentEdgeCount -= 1;
+	return kAlgoErrorNone;
 }
 
 static ALGO_INLINE void iSetBit(int32_t *bits, size_t capacity, int32_t index)

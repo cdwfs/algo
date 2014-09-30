@@ -16,7 +16,7 @@ enum {
 	kTom = 6,
 	kElaine = 7,
 	kAlison = 8,
-	kBen,
+	kBen = 9,
 
 	kNumPeople
 };
@@ -93,6 +93,9 @@ int main(void)
 		ALGO_VALIDATE( algoGraphAddEdge(graph, people[kNat].vertexId, people[kKen].vertexId) );
 
 		ALGO_VALIDATE( algoGraphAddEdge(graph, people[kKen].vertexId, people[kBrian].vertexId) );
+
+		ALGO_VALIDATE( algoGraphAddEdge(graph,    people[kCort].vertexId, people[kElaine].vertexId) );
+		ALGO_VALIDATE( algoGraphRemoveEdge(graph, people[kElaine].vertexId, people[kCort].vertexId) );
 
 		ALGO_VALIDATE( algoGraphAddEdge(graph, people[kElaine].vertexId, people[kAlison].vertexId) );
 	}
