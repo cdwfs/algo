@@ -34,6 +34,26 @@ static Person people[kNumPeople] = {
 	{"biy", -1},
 };
 
+static void processPersonEarly(AlgoGraph graph, int32_t personId)
+{
+	(void)graph;
+	assert(personId >= 0 && personId < kNumPeople);
+	printf("begin processing %s:\n", people[personId].name);
+}
+static void processEdge(AlgoGraph graph, int32_t p0, int32_t p1)
+{
+	(void)graph;
+	assert(p0 >= 0 && p0 < kNumPeople);
+	assert(p1 >= 0 && p1 < kNumPeople);
+	printf("\tedge to %s\n", people[p1].name);
+}
+static void processPersonLate(AlgoGraph graph, int32_t personId)
+{
+	(void)graph;
+	assert(personId >= 0 && personId < kNumPeople);
+	printf(" done processing %s\n", people[personId].name);
+}
+
 int main(void)
 {
 	unsigned int randomSeed = (unsigned int)time(NULL);
@@ -94,6 +114,26 @@ int main(void)
 				printf("\t%s\n", roommate->name);
 			}
 		}
+	}
+
+	/* BFS! */
+	{
+		void *bfsBuffer = NULL;
+		size_t bfsBufferSize = 0;
+		int32_t *parents = (int32_t*)malloc(kNumPeople*sizeof(int32_t));
+		ALGO_VALIDATE( algoGraphBfsBufferSize(&bfsBufferSize, graph) );
+		bfsBuffer = malloc(bfsBufferSize);
+		const int32_t bfsRoot = kCort;
+		printf("BFS search from %s...\n", people[bfsRoot].name);
+		ALGO_VALIDATE( algoGraphBfs(graph, people[kCort].vertexId, parents, kNumPeople,
+			processPersonEarly, processEdge, processPersonLate, bfsBuffer, bfsBufferSize) );
+		for(int iPerson=0; iPerson<kNumPeople; iPerson += 1)
+		{
+			printf("%s's parent is %s\n", people[iPerson].name,
+				parents[iPerson] >= 0 ? people[parents[iPerson]].name : "N/A");
+		}
+		free(parents);
+		free(bfsBuffer);
 	}
 
 	free(graphBuffer);
