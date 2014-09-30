@@ -44,6 +44,9 @@ extern "C"
 #ifndef ALGO_MEMSET
 #	define ALGO_MEMSET memset
 #endif
+#ifndef ALGO_ASSERT
+#	define ALGO_ASSERT assert
+#endif
 
 
 /** @brief Error code returned by algo functions. */
@@ -298,7 +301,7 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 	(*outAllocPool)->pool = (uint8_t*)bufferNext;
 	bufferNext += poolSize;
 
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoAllocPoolBufferSize() is out of date */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoAllocPoolBufferSize() is out of date */
 
 	(*outAllocPool)->elementSize = elementSize;
 	(*outAllocPool)->elementCount = elementCount;
@@ -313,7 +316,7 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 			elem += elementSize;
 		}
 		*(int32_t*)elem = -1;
-		assert(elem + elementSize == end);
+		ALGO_ASSERT(elem + elementSize == end);
 		(void)end;
 	}
 	return kAlgoErrorNone;
@@ -378,12 +381,12 @@ typedef struct AlgoStackImpl
 
 static int iStackIsEmpty(const AlgoStack stack)
 {
-	assert(NULL != stack);
+	ALGO_ASSERT(NULL != stack);
 	return (stack->top == 0);
 }
 static int iStackIsFull(const AlgoStack stack)
 {
-	assert(NULL != stack);
+	ALGO_ASSERT(NULL != stack);
 	return stack->top == stack->capacity;
 }
 
@@ -426,7 +429,7 @@ AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buff
 	(*outStack)->nodes = (AlgoData*)bufferNext;
 	bufferNext += (*outStack)->capacity * sizeof(AlgoData);
 	(*outStack)->top = 0;
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoStackBufferSize() is out of date. */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoStackBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -499,12 +502,12 @@ typedef struct AlgoQueueImpl
 
 static int iQueueIsEmpty(const AlgoQueue queue)
 {
-	assert(NULL != queue);
+	ALGO_ASSERT(NULL != queue);
 	return (queue->head == queue->tail);
 }
 static int iQueueIsFull(const AlgoQueue queue)
 {
-	assert(NULL != queue);
+	ALGO_ASSERT(NULL != queue);
 	return queue->head == (queue->tail+1) % queue->nodeCount;
 }
 
@@ -549,7 +552,7 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 	bufferNext += (*outQueue)->nodeCount * sizeof(AlgoData);
 	(*outQueue)->head = 0;
 	(*outQueue)->tail = 0;
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoQueueBufferSize() is out of date. */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoQueueBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -629,13 +632,13 @@ static const int32_t kAlgoHeapRootIndex = 1;
 
 static int32_t iHeapCurrentSize(AlgoHeap heap)
 {
-	assert(NULL != heap);
+	ALGO_ASSERT(NULL != heap);
 	return heap->nextEmpty - kAlgoHeapRootIndex;
 }
 
 static int iHeapIsNodeValid(AlgoHeap heap, const int32_t nodeIndex)
 {
-	assert(NULL != heap);
+	ALGO_ASSERT(NULL != heap);
 	return
 		nodeIndex >= kAlgoHeapRootIndex &&
 		nodeIndex < heap->nextEmpty &&
@@ -659,9 +662,9 @@ static void iHeapSwapNodes(AlgoHeap heap,
 	const int32_t index1, const int32_t index2)
 {
 	AlgoHeapNode tempNode;
-	assert(NULL != heap);
-	assert(iHeapIsNodeValid(heap, index1));
-	assert(iHeapIsNodeValid(heap, index2));
+	ALGO_ASSERT(NULL != heap);
+	ALGO_ASSERT(iHeapIsNodeValid(heap, index1));
+	ALGO_ASSERT(iHeapIsNodeValid(heap, index2));
 	tempNode = heap->nodes[index1];
 	heap->nodes[index1] = heap->nodes[index2];
 	heap->nodes[index2] = tempNode;
@@ -708,7 +711,7 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoDataCompar
 	(*outHeap)->keyCompare = keyCompare;
 	(*outHeap)->capacity = heapCapacity;
 	(*outHeap)->nextEmpty = kAlgoHeapRootIndex;
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoHeapBufferSize() is out of date. */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoHeapBufferSize() is out of date. */
 	return kAlgoErrorNone;
 }
 
@@ -863,7 +866,7 @@ AlgoError algoHeapCheck(AlgoHeap heap)
 	for(iNode=kAlgoHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
 	{
 		int32_t parentIndex = iHeapParentIndex(iNode);
-		assert(iHeapIsNodeValid(heap, parentIndex));
+		ALGO_ASSERT(iHeapIsNodeValid(heap, parentIndex));
 		if (heap->keyCompare(heap->nodes[iNode].key, heap->nodes[parentIndex].key) < 0)
 		{
 			return kAlgoErrorInvalidArgument;

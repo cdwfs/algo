@@ -2,6 +2,9 @@
 #define ALGO_TEST_COMMON_H
 
 #define ALGO_IMPLEMENTATION
+#ifdef _MSC_VER
+#	define ALGO_ASSERT(cond) if (!(cond)) __debugbreak()
+#endif
 #include "algo.h"
 
 #include <assert.h>
@@ -18,7 +21,7 @@
 		AlgoError error = ( expr );							\
 		if (kAlgoErrorNone != error) {							\
 			fprintf(stderr, "ERROR: %s returned %d\n", #expr, error);\
-			assert(kAlgoErrorNone == error);					\
+			__debugbreak(); \
 		}													\
 	} while(0,0)
 
