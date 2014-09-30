@@ -1075,7 +1075,7 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 	bufferNext += edgePoolSize;
 
 
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBufferSize() is out of date. */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBufferSize() is out of date. */
 
 	ALGO_MEMSET( (*outGraph)->edges, 0, edgesSize ); /* initialize all vertex edge lists to empty */
 	ALGO_MEMSET( (*outGraph)->degree, 0xFF, degreeSize ); /* initialize all vertex degrees to -1 (patently invalid */
@@ -1143,7 +1143,7 @@ AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int3
 		return kAlgoErrorInvalidArgument;
 	}
 	*outDegree = graph->degree[vertexId];
-	assert( *outDegree >= 0); /* testing against upper bound is more complicated... */
+	ALGO_ASSERT( *outDegree >= 0); /* testing against upper bound is more complicated... */
 	return kAlgoErrorNone;
 }
 AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, int32_t vertexDegree, int32_t outDestVertexIds[])
@@ -1162,11 +1162,11 @@ AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, in
 	edgeCount = graph->degree[srcVertexId];
 	for(iEdge=0; iEdge<edgeCount; iEdge += 1)
 	{
-		assert(NULL != nextEdge); /* edge list is shorter than expected! */
+		ALGO_ASSERT(NULL != nextEdge); /* edge list is shorter than expected! */
 		outDestVertexIds[iEdge] = nextEdge->destVertex;
 		nextEdge = nextEdge->next;
 	}
-	assert(NULL == nextEdge); /* edge list is longer than expected! */
+	ALGO_ASSERT(NULL == nextEdge); /* edge list is longer than expected! */
 	return kAlgoErrorNone;
 }
 AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData)
@@ -1194,7 +1194,7 @@ AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outV
 		return kAlgoErrorOperationFailed;
 	}
 	newVertexId = graph->nextFreeVertexId;
-	assert(newVertexId >= 0 && newVertexId < graph->vertexCapacity); /* <0 means the vertex pool is empty */
+	ALGO_ASSERT(newVertexId >= 0 && newVertexId < graph->vertexCapacity); /* <0 means the vertex pool is empty */
 	graph->nextFreeVertexId = graph->vertexData[newVertexId].asInt;
 	if (NULL != outVertexId)
 	{
@@ -1269,25 +1269,25 @@ AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t dest
 
 static ALGO_INLINE void iSetBit(int32_t *bits, size_t capacity, int32_t index)
 {
-	assert(index >= 0 && (size_t)index < capacity);
+	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	bits[index/32] |= 1<<(index%32);
 }
 static ALGO_INLINE void iClearBit(int32_t *bits, size_t capacity, int32_t index)
 {
-	assert(index >= 0 && (size_t)index < capacity);
+	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	bits[index/32] &= ~(1<<(index%32));
 }
 static ALGO_INLINE void iFlipBit(int32_t *bits, size_t capacity, int32_t index)
 {
-	assert(index >= 0 && (size_t)index < capacity);
+	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	bits[index/32] ^= 1<<(index%32);
 }
 static ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity, int32_t index)
 {
-	assert(index >= 0 && (size_t)index < capacity);
+	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	return ( bits[index/32] & (1<<(index%32)) ) ? 1 : 0;
 }
@@ -1360,7 +1360,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	}
 	bufferNext += queueSize;
 
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBfsBufferSize() is out of date */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBfsBufferSize() is out of date */
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
@@ -1383,14 +1383,14 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 		assert(v0 >= 0 && v0 < graph->vertexCapacity && graph->degree[v0] != -1);
 		if (NULL != vertexFuncEarly)
 			vertexFuncEarly(graph, v0);
-		assert(0 == iTestBit(processed, vertexCapacityRounded, v0));
+		ALGO_ASSERT(0 == iTestBit(processed, vertexCapacityRounded, v0));
 		iSetBit(processed, vertexCapacityRounded, v0); /* must be set here to prevent undirected edges from looping infinitely. */
 		/* Explore v0's edges. */
 		e = graph->edges[v0];
 		while(NULL != e)
 		{
 			edgeCount += 1;
-			assert(edgeCount <= graph->degree[v0]);
+			ALGO_ASSERT(edgeCount <= graph->degree[v0]);
 			int32_t v1 = e->destVertex;
 			assert(v1 >= 0 && v1 < graph->vertexCapacity && graph->degree[v1] != -1);
 			/* Run the edge function, if this is the first time we've seen it. */
@@ -1403,7 +1403,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			/* Enqueue v1, if we haven't seen it before. */
 			if (0 == iTestBit(discovered, vertexCapacityRounded, v1))
 			{
-				assert(0 == iTestBit(discovered, vertexCapacityRounded, v1));
+				ALGO_ASSERT(0 == iTestBit(discovered, vertexCapacityRounded, v1));
 				iSetBit(discovered, vertexCapacityRounded, v1);
 				err = algoQueueInsert(vertexQueue, algoDataFromInt(v1));
 				if (NULL != outVertexParents)
@@ -1413,7 +1413,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			}
 			e = e->next;
 		}
-		assert(edgeCount == graph->degree[v0]);
+		ALGO_ASSERT(edgeCount == graph->degree[v0]);
 		/* Run the late vertex function after all edges are processed. */
 		if (NULL != vertexFuncLate)
 			vertexFuncLate(graph, v0);
@@ -1443,7 +1443,7 @@ static void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParent
 {
 	AlgoGraphEdge *e = NULL;
 	int32_t edgeCount = 0;
-	assert(0 == iTestBit(discovered, graph->vertexCapacity, v0));
+	ALGO_ASSERT(0 == iTestBit(discovered, graph->vertexCapacity, v0));
 	iSetBit(discovered, graph->vertexCapacity, v0);
 	if (NULL != vertexFuncEarly)
 		vertexFuncEarly(graph, v0);
@@ -1451,7 +1451,7 @@ static void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParent
 	while(NULL != e)
 	{
 		edgeCount += 1;
-		assert(edgeCount <= graph->degree[v0]);
+		ALGO_ASSERT(edgeCount <= graph->degree[v0]);
 		int32_t v1 = e->destVertex;
 		assert(v1 >= 0 && v1 < graph->vertexCapacity && graph->degree[v1] != -1);
 		if (0 == iTestBit(discovered, graph->vertexCapacity, v1))
@@ -1472,10 +1472,10 @@ static void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParent
 		}
 		e = e->next;
 	}
-	assert(edgeCount == graph->degree[v0]);
+	ALGO_ASSERT(edgeCount == graph->degree[v0]);
 	if (NULL != vertexFuncLate)
 		vertexFuncLate(graph, v0);
-	assert(0 == iTestBit(processed, graph->vertexCapacity, v0));
+	ALGO_ASSERT(0 == iTestBit(processed, graph->vertexCapacity, v0));
 	iSetBit(processed, graph->vertexCapacity, v0);
 }
 AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
@@ -1512,7 +1512,7 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	int32_t *processed = (int32_t*)bufferNext;
 	bufferNext += processedSize;
 
-	assert( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphDfsBufferSize() is out of date */
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphDfsBufferSize() is out of date */
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
