@@ -1090,6 +1090,15 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 	return kAlgoErrorNone;
 }
 
+static ALGO_INLINE int iIsValidGraphVertexId(const AlgoGraph graph, int32_t vertexId)
+{
+	ALGO_ASSERT(NULL != graph);
+	return (
+		vertexId >= 0 &&
+		vertexId < graph->vertexCapacity &&
+		graph->degree[vertexId] >= 0) ? 1 : 0;
+}
+
 AlgoError algoGraphCurrentVertexCount(const AlgoGraph graph, int32_t *outCount)
 {
 	if (NULL == graph ||
@@ -1136,9 +1145,7 @@ AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int3
 {
 	if (NULL == graph ||
 		NULL == outDegree ||
-		vertexId < 0 ||
-		vertexId >= graph->vertexCapacity ||
-		graph->degree[vertexId] == -1)
+		0 == iIsValidGraphVertexId(graph, vertexId))
 	{
 		return kAlgoErrorInvalidArgument;
 	}
@@ -1152,9 +1159,8 @@ AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, in
 	int32_t edgeCount, iEdge;
 	if (NULL == graph ||
 		NULL == outDestVertexIds ||
-		srcVertexId < 0 ||
-		srcVertexId >= graph->vertexCapacity ||
-		vertexDegree != graph->degree[srcVertexId])
+		0 == iIsValidGraphVertexId(graph, srcVertexId) ||
+		graph->degree[srcVertexId] != vertexDegree)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
@@ -1173,9 +1179,7 @@ AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoDa
 {
 	if (NULL == graph ||
 		NULL == outData ||
-		vertexId < 0 ||
-		vertexId >= graph->vertexCapacity ||
-		graph->degree[vertexId] == -1)
+		0 == iIsValidGraphVertexId(graph, vertexId))
 	{
 		return kAlgoErrorInvalidArgument;
 	}
@@ -1208,15 +1212,18 @@ AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outV
 }
 AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 {
-	(void)graph;
-	(void)vertexId;
+	if (NULL == graph ||
+		0 == 0 == iIsValidGraphVertexId(graph, vertexId))
+	{
+		return kAlgoErrorInvalidArgument;
+	}
 	return kAlgoErrorOperationFailed; /* Currently unsupported */
 }
 AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId)
 {
 	if (NULL == graph ||
-		srcVertexId < 0  || srcVertexId  >= graph->currentVertexCount || graph->degree[srcVertexId]  == -1 ||
-		destVertexId < 0 || destVertexId >= graph->currentVertexCount || graph->degree[destVertexId] == -1 ||
+		0 == iIsValidGraphVertexId(graph, srcVertexId) ||
+		0 == iIsValidGraphVertexId(graph, destVertexId) ||
 		srcVertexId == destVertexId /* no self-connecting edges */
 		)
 	{
@@ -1322,9 +1329,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	uint8_t *bufferNext = (uint8_t*)buffer;
 	if (NULL == graph ||
 		(NULL != outVertexParents && vertexParentCount < (size_t)graph->vertexCapacity) ||
-		rootVertexId < 0 ||
-		rootVertexId >= graph->vertexCapacity ||
-		graph->degree[rootVertexId] == -1)
+		0 == iIsValidGraphVertexId(graph, rootVertexId))
 	{
 		return kAlgoErrorInvalidArgument;
 	}
@@ -1380,7 +1385,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 		const AlgoGraphEdge *e = NULL;
 		err = algoQueueRemove(vertexQueue, &queueElem);
 		v0 = queueElem.asInt;
-		assert(v0 >= 0 && v0 < graph->vertexCapacity && graph->degree[v0] != -1);
+		ALGO_ASSERT( 1 == iIsValidGraphVertexId(graph, v0) );
 		if (NULL != vertexFuncEarly)
 			vertexFuncEarly(graph, v0);
 		ALGO_ASSERT(0 == iTestBit(processed, vertexCapacityRounded, v0));
@@ -1392,7 +1397,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			edgeCount += 1;
 			ALGO_ASSERT(edgeCount <= graph->degree[v0]);
 			int32_t v1 = e->destVertex;
-			assert(v1 >= 0 && v1 < graph->vertexCapacity && graph->degree[v1] != -1);
+			ALGO_ASSERT( 1 == iIsValidGraphVertexId(graph, v1) );
 			/* Run the edge function, if this is the first time we've seen it. */
 			if (0 == iTestBit(processed, vertexCapacityRounded, v1) ||
 				graph->edgeMode == kAlgoGraphEdgeDirected)
@@ -1453,7 +1458,7 @@ static void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParent
 		edgeCount += 1;
 		ALGO_ASSERT(edgeCount <= graph->degree[v0]);
 		int32_t v1 = e->destVertex;
-		assert(v1 >= 0 && v1 < graph->vertexCapacity && graph->degree[v1] != -1);
+		ALGO_ASSERT( 1 == iIsValidGraphVertexId(graph, v1) );
 		if (0 == iTestBit(discovered, graph->vertexCapacity, v1))
 		{
 			if (NULL != outVertexParents)
@@ -1488,9 +1493,7 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	if (NULL == graph ||
 		NULL == outVertexParents ||
 		vertexParentCount < (size_t)graph->vertexCapacity ||
-		rootVertexId < 0 ||
-		rootVertexId >= graph->vertexCapacity ||
-		graph->degree[rootVertexId] == -1)
+		0 == iIsValidGraphVertexId(graph, rootVertexId))
 	{
 		return kAlgoErrorInvalidArgument;
 	}
