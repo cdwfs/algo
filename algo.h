@@ -1279,8 +1279,8 @@ AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph)
 		return kAlgoErrorInvalidArgument;
 	}
 	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
-	size_t discoveredSize         = vertexCapacityRounded / 32;
-	size_t processedSize          = vertexCapacityRounded / 32;
+	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t)  / 32;
+	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
 	size_t queueSize              = 0;
 	AlgoError err;
 	err = algoQueueBufferSize(&queueSize, graph->vertexCapacity);
@@ -1316,8 +1316,8 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	}
 
 	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
-	size_t discoveredSize         = vertexCapacityRounded / 32;
-	size_t processedSize          = vertexCapacityRounded / 32;
+	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t) / 32;
+	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
 	size_t queueSize              = 0;
 
 	int32_t *discovered = (int32_t*)bufferNext;
@@ -1362,6 +1362,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 		assert(v0 >= 0 && v0 < graph->vertexCapacity && graph->degree[v0] != -1);
 		if (NULL != vertexFuncEarly)
 			vertexFuncEarly(graph, v0);
+		assert(0 == iTestBit(processed, vertexCapacityRounded, v0));
 		iSetBit(processed, vertexCapacityRounded, v0); /* must be set here to prevent undirected edges from looping infinitely. */
 		/* Explore v0's edges. */
 		e = graph->edges[v0];
@@ -1370,7 +1371,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			edgeCount += 1;
 			assert(edgeCount <= graph->degree[v0]);
 			int32_t v1 = e->destVertex;
-			assert(v0 >= 0 && v0 < graph->vertexCapacity && graph->degree[v0] != -1);
+			assert(v1 >= 0 && v1 < graph->vertexCapacity && graph->degree[v1] != -1);
 			/* Run the edge function, if this is the first time we've seen it. */
 			if (0 == iTestBit(processed, vertexCapacityRounded, v1) ||
 				graph->edgeMode == kAlgoGraphEdgeDirected)
@@ -1381,6 +1382,7 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			/* Enqueue v1, if we haven't seen it before. */
 			if (0 == iTestBit(discovered, vertexCapacityRounded, v1))
 			{
+				assert(0 == iTestBit(discovered, vertexCapacityRounded, v1));
 				iSetBit(discovered, vertexCapacityRounded, v1);
 				err = algoQueueInsert(vertexQueue, algoDataFromInt(v1));
 				if (NULL != outVertexParents)
