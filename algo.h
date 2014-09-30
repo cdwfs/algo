@@ -108,7 +108,7 @@ ALGODEF AlgoError algoAllocPoolElementSize(AlgoAllocPool allocPool, int32_t *out
 typedef struct AlgoStackImpl *AlgoStack;
 /** @brief Computes the required buffer size for a stack with the specified capacity. */
 ALGODEF AlgoError algoStackBufferSize(size_t *outBufferSize, int32_t stackCapacity);
-/** @brief Initializes a stack object. */
+/** @brief Initializes a stack object using the provided buffer. */
 ALGODEF AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buffer, size_t bufferSize);
 /** @brief Pushes an element to the stack. */
 ALGODEF AlgoError algoStackPush(AlgoStack stack, const AlgoData elem);
@@ -140,7 +140,7 @@ ALGODEF AlgoError algoStackCurrentSize(const AlgoStack stack, int32_t *outSize);
 typedef struct AlgoQueueImpl *AlgoQueue;
 /** @brief Computes the required buffer size for a queue with the specified capacity. */
 ALGODEF AlgoError algoQueueBufferSize(size_t *outBufferSize, int32_t queueCapacity);
-/** @brief Initializes a queue object. */
+/** @brief Initializes a queue object using the provided buffer. */
 ALGODEF AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buffer, size_t bufferSize);
 /** @brief Inserts an element into the queue. */
 ALGODEF AlgoError algoQueueInsert(AlgoQueue queue, const AlgoData elem);
@@ -209,7 +209,7 @@ ALGODEF ALGO_INLINE int algoHeapKeyCompareFloatDescending(const AlgoData keyL, c
 }
 /** @brief Computes the required buffer size for a heap with the specified capacity. */
 ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
-/** @brief Initializes a heap object. */
+/** @brief Initializes a heap object using the provided buffer. */
 ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
 	void *buffer, size_t bufferSize);
 /** @brief Inserts an element into the heap, with the specified key. */
