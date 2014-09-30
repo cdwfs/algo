@@ -50,9 +50,9 @@ int main(void)
 
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
-	printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
 
 	kQueueCapacity = 512 + (rand() % 1024);
+	printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
 	ALGO_VALIDATE( algoQueueBufferSize(&queueBufferSize, kQueueCapacity) );
 	queueBuffer = malloc(queueBufferSize);
 	ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity, queueBuffer, queueBufferSize) );
