@@ -83,7 +83,7 @@ int main(void)
 
 	ALGO_VALIDATE( algoHeapBufferSize(&heapBufferSize, kHeapCapacity) );
 	heapBuffer = malloc(heapBufferSize);
-	ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, algoHeapKeyCompareIntAscending, heapBuffer, heapBufferSize) );
+	ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, algoDataCompareIntAscending, heapBuffer, heapBufferSize) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
 	assert(0 == currentSize);
 	for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)

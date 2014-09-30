@@ -165,7 +165,7 @@ ALGODEF AlgoError algoQueueCurrentSize(const AlgoQueue queue, int32_t *outSize);
  *
  * err = algoHeapBufferSize(&heapBufferSize, heapCapacity);
  * heapBuffer = malloc(heapBufferSize);
- * err = algoHeapCreate(&heap, heapCapacity, algoHeapKeyCompareIntAscending, heapBuffer, heapBufferSize);
+ * err = algoHeapCreate(&heap, heapCapacity, algoDataCompareIntAscending, heapBuffer, heapBufferSize);
  * err = algoHeapInsert(heap, key, value);
  * err = algoHeapPop(heap, &poppedKey, &poppedData);
  * @endcode
@@ -178,30 +178,30 @@ typedef struct AlgoHeapImpl *AlgoHeap;
  *        If this function returns > 0, keyR is higher priority than keyL.
  *        If this function returns   0, keyR has the same priority as keyL.
  */
-typedef int (*AlgoHeapKeyCompareFunc)(const AlgoData keyL, const AlgoData keyR);
+typedef int (*AlgoDataCompareFunc)(const AlgoData keyL, const AlgoData keyR);
 /** @brief Convenience function to sort heap keys as integers, in ascending order (lower value = higher priority) */
-ALGODEF ALGO_INLINE int algoHeapKeyCompareIntAscending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoDataCompareIntAscending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asInt < keyR.asInt) return -1;
 	if (keyL.asInt > keyR.asInt) return  1;
 	return 0;
 }
 /** @brief Convenience function to sort heap keys as integers, in ascending order (higher value = higher priority) */
-ALGODEF ALGO_INLINE int algoHeapKeyCompareIntDescending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoDataCompareIntDescending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asInt > keyR.asInt) return -1;
 	if (keyL.asInt < keyR.asInt) return  1;
 	return 0;
 }
 /** @brief Convenience function to sort heap keys as floats, in ascending order (lower value = higher priority) */
-ALGODEF ALGO_INLINE int algoHeapKeyCompareFloatAscending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoDataCompareFloatAscending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asFloat < keyR.asFloat) return -1;
 	if (keyL.asFloat > keyR.asFloat) return  1;
 	return 0;
 }
 /** @brief Convenience function to sort heap keys as floats, in ascending order (higher value = higher priority) */
-ALGODEF ALGO_INLINE int algoHeapKeyCompareFloatDescending(const AlgoData keyL, const AlgoData keyR)
+ALGODEF ALGO_INLINE int algoDataCompareFloatDescending(const AlgoData keyL, const AlgoData keyR)
 {
 	if (keyL.asFloat > keyR.asFloat) return -1;
 	if (keyL.asFloat < keyR.asFloat) return  1;
@@ -210,7 +210,7 @@ ALGODEF ALGO_INLINE int algoHeapKeyCompareFloatDescending(const AlgoData keyL, c
 /** @brief Computes the required buffer size for a heap with the specified capacity. */
 ALGODEF AlgoError algoHeapBufferSize(size_t *outBufferSize, int32_t heapCapacity);
 /** @brief Initializes a heap object using the provided buffer. */
-ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
+ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoDataCompareFunc keyCompare,
 	void *buffer, size_t bufferSize);
 /** @brief Inserts an element into the heap, with the specified key. */
 ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data);
@@ -612,7 +612,7 @@ typedef struct AlgoHeapNode
 typedef struct AlgoHeapImpl
 {
 	AlgoHeapNode *nodes;
-	AlgoHeapKeyCompareFunc keyCompare;
+	AlgoDataCompareFunc keyCompare;
 	int32_t capacity;
 	int32_t nextEmpty; /* 1-based; N's kids = 2*N and 2*N+1; N's parent = N/2 */
 } AlgoHeapImpl;
@@ -673,7 +673,7 @@ AlgoError algoHeapBufferSize(size_t *outSize, int32_t heapCapacity)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoHeapKeyCompareFunc keyCompare,
+AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoDataCompareFunc keyCompare,
 	void *buffer, size_t bufferSize)
 {
 	size_t minBufferSize = 0;
