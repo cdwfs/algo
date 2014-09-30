@@ -1246,27 +1246,6 @@ AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t dest
 	return kAlgoErrorOperationFailed; /* Currently unsupported */
 }
 
-AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph)
-{
-	if (NULL == outBufferSize ||
-		NULL == graph)
-	{
-		return kAlgoErrorInvalidArgument;
-	}
-	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
-	size_t discoveredSize         = vertexCapacityRounded / 32;
-	size_t processedSize          = vertexCapacityRounded / 32;
-	size_t queueSize              = 0;
-	AlgoError err;
-	err = algoQueueBufferSize(&queueSize, graph->vertexCapacity);
-	if (kAlgoErrorNone != err)
-	{
-		return kAlgoErrorInvalidArgument;
-	}
-	*outBufferSize = discoveredSize + processedSize + queueSize;
-	return kAlgoErrorNone;
-}
-
 static ALGO_INLINE void iSetBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	assert(index >= 0 && (size_t)index < capacity);
@@ -1292,11 +1271,29 @@ static ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity, int32_
 	return ( bits[index/32] & (1<<(index%32)) ) ? 1 : 0;
 }
 
-AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId,
-	int32_t outVertexParents[], size_t vertexParentCount, 
-	AlgoGraphProcessVertexFunc vertexFuncEarly,
-	AlgoGraphProcessEdgeFunc edgeFunc,
-	AlgoGraphProcessVertexFunc vertexFuncLate,
+AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph)
+{
+	if (NULL == outBufferSize ||
+		NULL == graph)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
+	size_t discoveredSize         = vertexCapacityRounded / 32;
+	size_t processedSize          = vertexCapacityRounded / 32;
+	size_t queueSize              = 0;
+	AlgoError err;
+	err = algoQueueBufferSize(&queueSize, graph->vertexCapacity);
+	if (kAlgoErrorNone != err)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = discoveredSize + processedSize + queueSize;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
+	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
 	void *buffer, size_t bufferSize)
 {
 	size_t minBufferSize = 0;
