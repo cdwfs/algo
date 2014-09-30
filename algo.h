@@ -40,6 +40,12 @@ extern "C"
 #	define ALGO_INLINE __forceinline
 #endif
 
+/* Redefine to replace standard library functions with custom implementations */
+#ifndef ALGO_MEMSET
+#	define ALGO_MEMSET memset
+#endif
+
+
 /** @brief Error code returned by algo functions. */
 typedef enum AlgoError
 {
