@@ -235,35 +235,70 @@ ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 ALGODEF AlgoError algoHeapCurrentSize(AlgoHeap heap, int32_t *outSize);
 
 /**
- * Implements a generic graph structure
+ * Implements a generic graph structure.
  */
 typedef struct AlgoGraphImpl *AlgoGraph;
 
 typedef enum AlgoGraphEdgeMode
 {
-	kAlgoGraphEdgeUndirected = 0,
-	kAlgoGraphEdgeDirected   = 1,
+	kAlgoGraphEdgeUndirected = 0, /**< Graph edges are undirected; if v0->v1 exists, then so does v1->v0. */
+	kAlgoGraphEdgeDirected   = 1, /**< Graph edges are directed; v0->v1 does not imply v1->v0. */
 } AlgoGraphEdgeMode;
 
+/** @brief Computes the required buffer size for a graph with the specified vertex and edge capacities. */
 ALGODEF AlgoError algoGraphBufferSize(size_t *outBufferSize, int32_t vertexCapacity, int32_t edgeCapacity,
 	const AlgoGraphEdgeMode edgeMode);
+/** @brief Initializes a graph object using the provided buffer. */
 ALGODEF AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t edgeCapacity,
 	const AlgoGraphEdgeMode edgeMode, void *buffer, size_t bufferSize);
+/** @brief Retrieves the current number of vertices in a graph. */
 ALGODEF AlgoError algoGraphCurrentVertexCount(const AlgoGraph graph, int32_t *outCount);
+/** @brief Retrieves the maximum number of vertices that can be stored in a graph. */
 ALGODEF AlgoError algoGraphVertexCapacity(const AlgoGraph graph, int32_t *outCapacity);
+/** @brief Retrieves the current number of edges in a graph. */
 ALGODEF AlgoError algoGraphCurrentEdgeCount(const AlgoGraph graph, int32_t *outCount);
+/** @brief Retrieves the maximum number of edges that can be stored in a graph. */
 ALGODEF AlgoError algoGraphEdgeCapacity(const AlgoGraph graph, int32_t *outCapacity);
+/** @brief Add a new vertex to a graph. Each vertex may optionally contain a piece of arbitrary user data. */
 ALGODEF AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outVertexId);
+/** @brief Remove an existing vertex from a graph. This will implicitly remove any edges connecting this
+           vertex to the rest of the graph. */
 ALGODEF AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId);
+/** @brief Add a new edge to a graph, connecting srcVertexId to destVertexId.
+           If the graph's edge mode is kAlgoGraphEdgeUndirected, a second edge will be added
+		   from destVertexId to srcVertexId. */
 ALGODEF AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
+/** @brief Remove an existing vertex from a graph.
+           If the graph's edge mode is kAlgoGraphEdgeUndirected, the edge from destVertexId to srcVertexId
+		   will also be removed. */
 ALGODEF AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
+/** @brief Retrieve the degree (outgoing edge count) of a vertex in the graph. */
 ALGODEF AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int32_t *outDegree);
+/** @brief Retrieve the vertices to which a given vertex is connected. */
 ALGODEF AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, int32_t vertexDegree, int32_t outDestVertexIds[]);
+/** @brief Retrieve a vertex's optional user data field. */
 ALGODEF AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData);
 
 typedef void (*AlgoGraphProcessVertexFunc)(AlgoGraph graph, int32_t vertexId);
 typedef void (*AlgoGraphProcessEdgeFunc)(AlgoGraph graph, int32_t startVertexId, int32_t endVertexId);
+/** @brief Compute the required buffer size to perform a breadth-first search on a graph. 
+           This only includes the space required for temporary storage during the search, not the search results themselves. */
 ALGODEF AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph);
+/** @brief Perform a breadth-first search on a graph.
+	@param graph The graph to search.
+	@param rootVertexId starting from the specified root vertex.
+	@param outVertexParents The parent of each vertex will be stored in this array, which must be large enough for the graph's
+	                        maximum vertex capacity. The parent of the root vertex, vertices not connected to the root vertex,
+							or invalid vertices will be -1.
+	@param vertexParentCount The outVertexParents[] array must contain at least this many elements. This value should match the
+	                         graph's maximum vertex capacity.
+	@param vertexFuncEarly If non-NULL, this function will be called on each vertex when it is first encountered during the search.
+	@param edgeFunc If non-NULL, this function will be called on each edge when it is first encountered during the search. For undirected
+	                graphs, the function will only be called once per pair of connected vertices.
+	@param vertexFuncLate If non-NULL, this function will be called on each vertex after all of its edges have been explored.
+	@param buffer Used for temporary storage during the search.
+	@param bufferSize Size of the buffer[] array, in bytes. Given by algoGraphBfsBufferSize().
+	*/
 ALGODEF AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
 	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
 	void *buffer, size_t bufferSize);
