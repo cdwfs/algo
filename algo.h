@@ -44,6 +44,9 @@ extern "C"
 #ifndef ALGO_MEMSET
 #	define ALGO_MEMSET memset
 #endif
+#ifndef ALGO_MEMCPY
+#	define ALGO_MEMCPY memcpy
+#endif
 #ifndef ALGO_ASSERT
 #	define ALGO_ASSERT assert
 #endif
