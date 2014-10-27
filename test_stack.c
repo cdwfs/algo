@@ -49,9 +49,9 @@ int main(void)
 
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
+	kStackCapacity = 1 + (rand() % 1024);
 	printf("Testing AlgoStack (capacity: %d)\n", kStackCapacity);
 
-	kStackCapacity = 1 + (rand() % 1024);
 	nextToCheck = kStackCapacity-1;
 	ALGO_VALIDATE( algoStackBufferSize(&stackBufferSize, kStackCapacity) );
 	stackBuffer = malloc(stackBufferSize);
