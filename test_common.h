@@ -17,12 +17,20 @@
 #include <crtdbg.h>
 #endif
 
-#define ALGO_VALIDATE(expr) do {							\
-		AlgoError error = ( expr );							\
-		if (kAlgoErrorNone != error) {							\
-			fprintf(stderr, "ERROR: %s returned %d\n", #expr, error);\
-			__debugbreak(); \
-		}													\
+#ifdef _MSC_VER
+#	define ALGO_DEBUGBREAK() __debugbreak()
+#elif defined(__GNUC__) || defined(__clang__)
+#	define ALGO_DEBUGBREAK() asm("int $3")
+#else
+#   error Unsupported compiler
+#endif
+
+#define ALGO_VALIDATE(expr) do {										\
+		AlgoError error = ( expr );										\
+		if (kAlgoErrorNone != error) {									\
+			fprintf(stderr, "ERROR: %s returned %d\n", #expr, error);	\
+			ALGO_DEBUGBREAK();											\
+		}																\
 	} while(0,0)
 
 #if !defined(max)
