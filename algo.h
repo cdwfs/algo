@@ -265,7 +265,9 @@ ALGODEF AlgoError algoGraphEdgeCapacity(const AlgoGraph graph, int32_t *outCapac
 /** @brief Add a new vertex to a graph. Each vertex may optionally contain a piece of arbitrary user data. */
 ALGODEF AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outVertexId);
 /** @brief Remove an existing vertex from a graph. This will implicitly remove any edges connecting this
-           vertex to the rest of the graph. */
+           vertex to the rest of the graph.
+	@note  For undirected graphs, this operations runs in O(1) time (expected), approaching O(Ecurrent) in pathological cases.
+	       For directed graphs, this operation runs in O(Vcapacity+Ecurrent) time. */
 ALGODEF AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId);
 /** @brief Add a new edge to a graph, connecting srcVertexId to destVertexId.
            If the graph's edge mode is kAlgoGraphEdgeUndirected, a second edge will be added
@@ -273,7 +275,8 @@ ALGODEF AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId);
 ALGODEF AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
 /** @brief Remove an existing vertex from a graph.
            If the graph's edge mode is kAlgoGraphEdgeUndirected, the edge from destVertexId to srcVertexId
-		   will also be removed. */
+		   will also be removed.
+	@note  This operation runs in O(1) time (expected), approaching O(Ecurrent) in pathological cases. */
 ALGODEF AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId);
 /** @brief Retrieve the degree (outgoing edge count) of a vertex in the graph. */
 ALGODEF AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertexId, int32_t *outDegree);
@@ -1220,7 +1223,58 @@ AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	return kAlgoErrorOperationFailed; /* Currently unsupported */
+#if 0
+	if (kAlgoGraphEdgeUndirected == graph->edgeMode)
+	{
+		AlgoGraphEdge *outEdge = graph->edges[vertexId];
+		while(outEdge != NULL)
+		{
+			int32_t destVertexId = outEdge->destVertex;
+			AlgoGraphEdge *outToFree = outEdge, *inEdge = graph->edges[destVertexId];
+			ALGO_ASSERT(NULL != inEdge); /* for undirected graphs, there must at least be an edge going back to vertexId! */
+			while(inEdge != NULL)
+			{
+				/* Find the edge back to vertexId, and remove it.
+				/* TODO I need a helper function to remove edges from edge lists. */
+				int removed = iRemoveGraphEdgeFromList(graph, destVertexId, vertexId);
+				ALGO_ASSERT(1 == removed); /* this removal MUST succeed, or else an invariant has failed somewhere. */
+				graph->degree[destVertexId] -= 1;
+			}
+			/* Remove outgoing edge */
+			outEdge = outEdge->next;
+			algoAllocPoolFree(graph->edgePool, outToFree);
+			graph->currentEdgeCount -= 1;
+		}
+	}
+	else /* kAlgoGraphEdgeDirected == graph->edgeMode */
+	{
+		/* Remove all outgoing edges */
+		AlgoGraphEdge *outEdge = graph->edges[vertexId];
+		while(outEdge != NULL)
+		{
+			int32_t destVertexId = outEdge->destVertex;
+			AlgoGraphEdge *outToFree = outEdge;
+			outEdge = outEdge->next;
+			algoAllocPoolFree(graph->edgePool, outToFree);
+			graph->currentEdgeCount -= 1;
+		}
+		graph->degree[vertexId] = 0;
+		graph->edges[vertexId] = 0;
+		/*	Search all other vertices for incoming edges, and remove them. This *really* sucks, but to avoid it I'd need one of these:
+			- a way to efficiently iterate over valid vertices ONLY, which turns O(Vmax+E) into O(Vcurrent+E)
+			- a per-vertex list of vertices with edges linking to that vertex, which uses O(E) more memory but reduces running time to O(1) expected / O(E) worst-case.
+			See if it becomes a bottleneck first.
+			*/
+
+	}
+	/* Finally, remove the vertex. */
+	graph->vertexData[vertexId].asInt = graph->nextFreeVertexId;
+	graph->nextFreeVertexId = vertexId;
+	graph->currentVertexCount -= 1;
+	graph->degree[vertexId] = -1;
+	graph->edges[vertexId] = NULL; // redundant?
+#endif
+	return kAlgoErrorOperationFailed;
 }
 AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVertexId)
 {
