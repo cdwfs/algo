@@ -11,9 +11,14 @@ MACRO (cmp_IDE_SOURCE_PROPERTIES SOURCE_PATH HEADERS SOURCES)
     source_group(${source_group_path} FILES ${HEADERS} ${SOURCES})
 ENDMACRO (cmp_IDE_SOURCE_PROPERTIES NAME HEADERS SOURCES INSTALL_FILES)
 
-set(CMAKE_BUILD_TYPE Debug)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 SET(headers algo.h test_common.h)
+
+IF(MSVC)
+	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
+ELSEIF(UNIX)
+	set(CMAKE_BUILD_TYPE Debug)
+ENDIF()
 
 set(exe_name test_allocpool)
 set(sources ${exe_name}.c)
