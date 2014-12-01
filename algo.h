@@ -1216,7 +1216,7 @@ AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outV
 AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 {
 	if (NULL == graph ||
-		0 == 0 == iIsValidGraphVertexId(graph, vertexId))
+		0 == iIsValidGraphVertexId(graph, vertexId))
 	{
 		return kAlgoErrorInvalidArgument;
 	}
