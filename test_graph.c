@@ -75,6 +75,7 @@ int main(void)
 	ALGO_VALIDATE( algoGraphBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, edgeMode) );
 	graphBuffer = malloc(graphBufferSize);
 	ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, edgeMode, graphBuffer, graphBufferSize) );
+	ALGO_VALIDATE( algoGraphValidate(graph) );
 
 	/* Hard-code some graph data */
 	{
@@ -99,7 +100,8 @@ int main(void)
 
 		ALGO_VALIDATE( algoGraphAddEdge(graph, people[kElaine].vertexId, people[kAlison].vertexId) );
 	}
-	
+	ALGO_VALIDATE( algoGraphValidate(graph) );
+
 	/* Query the graph */
 	{
 		int32_t iPerson;
@@ -119,6 +121,7 @@ int main(void)
 			}
 		}
 	}
+	ALGO_VALIDATE( algoGraphValidate(graph) );
 
 	/* BFS */
 	{
@@ -139,6 +142,7 @@ int main(void)
 		free(parents);
 		free(bfsBuffer);
 	}
+	ALGO_VALIDATE( algoGraphValidate(graph) );
 
 	/* DFS */
 	{
@@ -159,7 +163,31 @@ int main(void)
 		free(parents);
 		free(dfsBuffer);
 	}
+	ALGO_VALIDATE( algoGraphValidate(graph) );
 
+	{
+		int32_t iPerson;
+		printf("\n\nRemoving cort...\n");
+		ALGO_VALIDATE( algoGraphRemoveVertex(graph, people[kCort].vertexId) );
+		printf("Manual graph queries:\n");
+		for(iPerson=0; iPerson<kNumPeople; iPerson += 1)
+		{
+			int32_t degree, iRoommate;
+			int32_t roommateIds[kNumPeople];
+			if (iPerson == kCort)
+				continue; /* gone now! */
+			ALGO_VALIDATE( algoGraphGetVertexDegree(graph, people[iPerson].vertexId, &degree) );
+			printf("%s had %d roommates:\n", people[iPerson].name, degree);
+			ALGO_VALIDATE( algoGraphGetVertexEdges(graph, people[iPerson].vertexId, degree, roommateIds) );
+			for(iRoommate=0; iRoommate<degree; ++iRoommate)
+			{
+				Person *roommate = NULL;
+				ALGO_VALIDATE( algoGraphGetVertexData(graph, roommateIds[iRoommate], (AlgoData*)&roommate) );
+				printf("\t%s\n", roommate->name);
+			}
+		}
+	}
+	ALGO_VALIDATE( algoGraphValidate(graph) );
 
 	free(graphBuffer);
 }
