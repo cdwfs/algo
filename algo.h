@@ -231,7 +231,7 @@ ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *out
 /** @brief Removes the "top" element from the heap. */
 ALGODEF AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
 /** @brief Debugging function to validate heap consistency. */
-ALGODEF AlgoError algoHeapCheck(AlgoHeap heap);
+ALGODEF AlgoError algoHeapValidate(const AlgoHeap heap);
 /** @brief Retrieves the maximum number of elements that can be stored concurrently in the heap. */
 ALGODEF AlgoError algoHeapCapacity(AlgoHeap heap, int32_t *outCapacity);
 /** @brief Retrieves the number of elements currently stored in the heap. */
@@ -938,7 +938,7 @@ AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapCheck(AlgoHeap heap)
+AlgoError algoHeapValidate(const AlgoHeap heap)
 {
 	int32_t iNode;
 	/* Basic tests */

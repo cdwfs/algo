@@ -21,7 +21,7 @@ static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
 	assert(beforeSize+1 == afterSize);
-	ALGO_VALIDATE( algoHeapCheck(heap) );
+	ALGO_VALIDATE( algoHeapValidate(heap) );
 	return 1;
 }
 
@@ -59,7 +59,7 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
 	assert(beforeSize-1 == afterSize);
-	ALGO_VALIDATE( algoHeapCheck(heap) );
+	ALGO_VALIDATE( algoHeapValidate(heap) );
 	return 1;
 }
 
