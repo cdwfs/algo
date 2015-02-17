@@ -345,6 +345,8 @@ ALGODEF AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int3
 #include <stdlib.h>
 #include <string.h>
 
+#define ALGO_INTERNAL static
+
 /******************************************
  * AlgoAllocPool
  ******************************************/
@@ -477,12 +479,12 @@ typedef struct AlgoStackImpl
 	int32_t top; /* index of next empty element in the stack. top=0 -> empty stack. top=capacity -> full */
 } AlgoStackImpl;
 
-static int iStackIsEmpty(const AlgoStack stack)
+ALGO_INTERNAL int iStackIsEmpty(const AlgoStack stack)
 {
 	ALGO_ASSERT(NULL != stack);
 	return (stack->top == 0);
 }
-static int iStackIsFull(const AlgoStack stack)
+ALGO_INTERNAL int iStackIsFull(const AlgoStack stack)
 {
 	ALGO_ASSERT(NULL != stack);
 	return stack->top == stack->capacity;
@@ -598,12 +600,12 @@ typedef struct AlgoQueueImpl
    if head == tail, that means the queue is empty.
    if head = (tail+1) % nodeCount, the queue is full. */
 
-static int iQueueIsEmpty(const AlgoQueue queue)
+ALGO_INTERNAL int iQueueIsEmpty(const AlgoQueue queue)
 {
 	ALGO_ASSERT(NULL != queue);
 	return (queue->head == queue->tail);
 }
-static int iQueueIsFull(const AlgoQueue queue)
+ALGO_INTERNAL int iQueueIsFull(const AlgoQueue queue)
 {
 	ALGO_ASSERT(NULL != queue);
 	return queue->head == (queue->tail+1) % queue->nodeCount;
@@ -726,15 +728,15 @@ typedef struct AlgoHeapImpl
 
 /* Internal utilities */
 
-static const int32_t kAlgoHeapRootIndex = 1;
+ALGO_INTERNAL const int32_t kAlgoHeapRootIndex = 1;
 
-static int32_t iHeapCurrentSize(AlgoHeap heap)
+ALGO_INTERNAL int32_t iHeapCurrentSize(AlgoHeap heap)
 {
 	ALGO_ASSERT(NULL != heap);
 	return heap->nextEmpty - kAlgoHeapRootIndex;
 }
 
-static int iHeapIsNodeValid(AlgoHeap heap, const int32_t nodeIndex)
+ALGO_INTERNAL int iHeapIsNodeValid(AlgoHeap heap, const int32_t nodeIndex)
 {
 	ALGO_ASSERT(NULL != heap);
 	return
@@ -743,20 +745,20 @@ static int iHeapIsNodeValid(AlgoHeap heap, const int32_t nodeIndex)
 		nodeIndex < heap->capacity + kAlgoHeapRootIndex;
 }
 
-static int32_t iHeapParentIndex(const int32_t childIndex)
+ALGO_INTERNAL int32_t iHeapParentIndex(const int32_t childIndex)
 {
 	return childIndex/2;
 }
-static int32_t iHeapLeftChildIndex(const int32_t parentIndex)
+ALGO_INTERNAL int32_t iHeapLeftChildIndex(const int32_t parentIndex)
 {
 	return parentIndex*2;
 }
-static int32_t iHeapRightChildIndex(const int32_t parentIndex)
+ALGO_INTERNAL int32_t iHeapRightChildIndex(const int32_t parentIndex)
 {
 	return parentIndex*2 + 1;
 }
 
-static void iHeapSwapNodes(AlgoHeap heap,
+ALGO_INTERNAL void iHeapSwapNodes(AlgoHeap heap,
 	const int32_t index1, const int32_t index2)
 {
 	AlgoHeapNode tempNode;
@@ -1400,25 +1402,25 @@ AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t dest
 	return kAlgoErrorNone;
 }
 
-static ALGO_INLINE void iSetBit(int32_t *bits, size_t capacity, int32_t index)
+ALGO_INTERNAL ALGO_INLINE void iSetBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	bits[index/32] |= 1<<(index%32);
 }
-static ALGO_INLINE void iClearBit(int32_t *bits, size_t capacity, int32_t index)
+ALGO_INTERNAL ALGO_INLINE void iClearBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	bits[index/32] &= ~(1<<(index%32));
 }
-static ALGO_INLINE void iFlipBit(int32_t *bits, size_t capacity, int32_t index)
+ALGO_INTERNAL ALGO_INLINE void iFlipBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
 	bits[index/32] ^= 1<<(index%32);
 }
-static ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity, int32_t index)
+ALGO_INTERNAL ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
 	(void)capacity;
@@ -1682,7 +1684,7 @@ AlgoError algoGraphDfsBufferSizeOld(size_t *outBufferSize, const AlgoGraph graph
 	return kAlgoErrorNone;
 }
 
-static void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParents[],
+ALGO_INTERNAL void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParents[],
 	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
 	int32_t discovered[], int32_t processed[])
 {
