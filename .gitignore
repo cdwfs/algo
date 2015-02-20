@@ -26,4 +26,5 @@ Release/
 *.ipch
 *.cache
 
+CMakeLists.txt.user*
 build
