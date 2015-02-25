@@ -1181,8 +1181,9 @@ AlgoError algoGraphValidate(const AlgoGraph graph)
 	{
 		int validVertexCount = 0;
 		int validEdgeNodeCount = 0;
+		int iVertex;
 		const int32_t nodesPerEdge = (graph->edgeMode == kAlgoGraphEdgeDirected) ? 1 : 2; /* undirected edges store two nodes: x->y and y->x */
-		for(int iVertex=0; iVertex<graph->vertexCapacity; iVertex += 1)
+		for(iVertex=0; iVertex<graph->vertexCapacity; iVertex += 1)
 		{
 			if (iGraphIsValidVertexId(graph, iVertex))
 			{
@@ -1391,6 +1392,7 @@ AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 	{
 		/* Remove all outgoing edges */
 		AlgoGraphEdge *outEdge = graph->vertexEdges[vertexId];
+		int32_t srcVertexId;
 		while(outEdge != NULL)
 		{
 			AlgoGraphEdge *outToFree = outEdge;
@@ -1407,7 +1409,7 @@ AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 			  O(1) expected / O(E) worst-case.
 			See if vertex removal becomes a bottleneck first. For now, it's just functional.
 			*/
-		for(int32_t srcVertexId=0; srcVertexId<graph->vertexCapacity; srcVertexId += 1)
+		for(srcVertexId=0; srcVertexId<graph->vertexCapacity; srcVertexId += 1)
 		{
 			if (!iGraphIsValidVertexId(graph, srcVertexId))
 				continue;
@@ -1436,7 +1438,7 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 	/* TODO: debug code to check that a src->dest edge doesn't already exist */
 	{
 		AlgoGraphEdge *newEdge = NULL;
-		AlgoError err = algoAllocPoolAlloc(graph->edgePool, &newEdge);
+		AlgoError err = algoAllocPoolAlloc(graph->edgePool, (void**)&newEdge);
 		if (err != kAlgoErrorNone)
 		{
 			return kAlgoErrorOperationFailed; /* exceeded edge capacity */
@@ -1453,7 +1455,7 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 		/* TODO: debug code to check that a dest->src edge doesn't already exist */
 		/* Add a second edge in the opposite direction */
 		AlgoGraphEdge *newEdge = NULL;
-		AlgoError err = algoAllocPoolAlloc(graph->edgePool, &newEdge);
+		AlgoError err = algoAllocPoolAlloc(graph->edgePool, (void**)&newEdge);
 		if (err != kAlgoErrorNone)
 		{
 			/* TODO: free previous edge? or just assert that this can't happen? */

@@ -128,13 +128,14 @@ int main(void)
 		void *bfsBuffer = NULL;
 		size_t bfsBufferSize = 0;
 		int32_t *parents = (int32_t*)malloc(kNumPeople*sizeof(int32_t));
+		int iPerson;
 		ALGO_VALIDATE( algoGraphBfsBufferSize(&bfsBufferSize, graph) );
 		bfsBuffer = malloc(bfsBufferSize);
 		const int32_t bfsRoot = kCort;
 		printf("\n\nBFS search from %s...\n", people[bfsRoot].name);
 		ALGO_VALIDATE( algoGraphBfs(graph, people[kCort].vertexId, parents, kNumPeople,
 			processPersonEarly, processEdge, processPersonLate, bfsBuffer, bfsBufferSize) );
-		for(int iPerson=0; iPerson<kNumPeople; iPerson += 1)
+		for(iPerson=0; iPerson<kNumPeople; iPerson += 1)
 		{
 			printf("%s's parent is %s\n", people[iPerson].name,
 				parents[iPerson] >= 0 ? people[parents[iPerson]].name : "N/A");
@@ -149,13 +150,14 @@ int main(void)
 		void *dfsBuffer = NULL;
 		size_t dfsBufferSize = 0;
 		int32_t *parents = (int32_t*)malloc(kNumPeople*sizeof(int32_t));
+		int iPerson;
 		ALGO_VALIDATE( algoGraphDfsBufferSize(&dfsBufferSize, graph) );
 		dfsBuffer = malloc(dfsBufferSize);
 		const int32_t bfsRoot = kCort;
 		printf("\n\nDFS search from %s...\n", people[bfsRoot].name);
 		ALGO_VALIDATE( algoGraphDfs(graph, people[kCort].vertexId, parents, kNumPeople,
 			processPersonEarly, processEdge, processPersonLate, dfsBuffer, dfsBufferSize) );
-		for(int iPerson=0; iPerson<kNumPeople; iPerson += 1)
+		for(iPerson=0; iPerson<kNumPeople; iPerson += 1)
 		{
 			printf("%s's parent is %s\n", people[iPerson].name,
 				parents[iPerson] >= 0 ? people[parents[iPerson]].name : "N/A");
