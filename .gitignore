@@ -27,5 +27,4 @@ Release/
 *.cache
 
 CMakeLists.txt.user*
-*.cbp
 build
