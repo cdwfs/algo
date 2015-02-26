@@ -208,7 +208,6 @@ static void testTicTacToe(void)
 	void *dfsBuffer = malloc(dfsBufferSize);
 	int32_t *vertexParents = malloc(kVertexCapacity*sizeof(int32_t));
 	/** TODO:
-		Add algoGraphSetVertexData()
 		Add algoGraphSetEdgeData(), algoGraphGetEdgeData()
 		Add void parameters to AlgoGraphProcessVertexFunc and AlgoGraphProcessEdgeFunc
 		lateFunc:

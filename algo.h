@@ -285,7 +285,9 @@ ALGODEF AlgoError algoGraphGetVertexDegree(const AlgoGraph graph, int32_t vertex
 /** @brief Retrieve the vertices to which a given vertex is connected. */
 ALGODEF AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, int32_t vertexDegree, int32_t outDestVertexIds[]);
 /** @brief Retrieve a vertex's optional user data field. */
-ALGODEF AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData);
+ALGODEF AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outValue);
+/** @brief Retrieve a vertex's optional user data field. */
+ALGODEF AlgoError algoGraphSetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData value);
 
 typedef void (*AlgoGraphProcessVertexFunc)(AlgoGraph graph, int32_t vertexId);
 typedef void (*AlgoGraphProcessEdgeFunc)(AlgoGraph graph, int32_t startVertexId, int32_t endVertexId);
@@ -1328,15 +1330,25 @@ AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVertexId, in
 	ALGO_ASSERT(NULL == nextEdge); /* edge list is longer than expected! */
 	return kAlgoErrorNone;
 }
-AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outData)
+AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outValue)
 {
 	if (NULL == graph ||
-		NULL == outData ||
+		NULL == outValue ||
 		0 == iGraphIsValidVertexId(graph, vertexId))
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	*outData = graph->vertexData[vertexId];
+	*outValue = graph->vertexData[vertexId];
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphSetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData value)
+{
+	if (NULL == graph ||
+		0 == iGraphIsValidVertexId(graph, vertexId))
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	graph->vertexData[vertexId] = value;
 	return kAlgoErrorNone;
 }
 AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outVertexId)
