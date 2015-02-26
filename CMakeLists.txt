@@ -15,7 +15,7 @@ SET(headers algo.h test_common.h)
 
 IF(MSVC)
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4 /we4013 /we4020")
 ELSEIF(UNIX)
 	set(CMAKE_BUILD_TYPE Debug)
 ENDIF()
