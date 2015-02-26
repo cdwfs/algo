@@ -113,11 +113,97 @@ static void tttPrint(const TicTacToeState state)
 	printf("%c|%c|%c\n-+-+-\n", tttGetCell(state, 3), tttGetCell(state, 4), tttGetCell(state, 5));
 	printf("%c|%c|%c\n\n",      tttGetCell(state, 6), tttGetCell(state, 7), tttGetCell(state, 8));
 }
+typedef struct HashEntry_StateToInt
+{
+	TicTacToeState key;
+	int32_t value;
+	struct HashEntry_StateToInt *next;
+} HashEntry_StateToInt;
+typedef struct HashTable_StateToInt
+{
+	int binCount;
+	int entryCapacity;
+	int freeEntryIndex;
+	HashEntry_StateToInt **bins;
+	HashEntry_StateToInt *entryPool;
+} HashTable_StateToInt;
+static size_t hashBufferSize_StateToInt(int binCount, int entryCapacity)
+{
+	return entryCapacity*sizeof(HashEntry_StateToInt) + binCount*sizeof(HashEntry_StateToInt*) + sizeof(HashTable_StateToInt);
+}
+static HashTable_StateToInt *hashCreate_StateToInt(void *buffer, size_t bufferSize, int binCount, int entryCapacity)
+{
+	size_t expectedBufferSize = hashBufferSize_StateToInt(binCount, entryCapacity);
+	if (bufferSize < expectedBufferSize)
+		return NULL;
+	uint8_t *bufferNext = (uint8_t*)buffer;
 
-static void addMovesForState(AlgoGraph graph, int32_t stateVertexIds[], int32_t vertexId, char player)
+	HashEntry_StateToInt *entryPool = (HashEntry_StateToInt*)bufferNext;
+	bufferNext += entryCapacity*sizeof(HashEntry_StateToInt);
+
+	HashEntry_StateToInt **bins = (HashEntry_StateToInt**)bufferNext;
+	bufferNext += binCount*sizeof(HashEntry_StateToInt*);
+	int iBin;
+	for(iBin=0; iBin<binCount; iBin+=1)
+		bins[iBin] = NULL;
+
+	HashTable_StateToInt *outTable = (HashTable_StateToInt*)bufferNext;
+	bufferNext += sizeof(HashTable_StateToInt);
+	assert( (size_t)(bufferNext-(uint8_t*)buffer) == expectedBufferSize );
+	outTable->binCount = binCount;
+	outTable->entryCapacity = entryCapacity;
+	outTable->freeEntryIndex = 0;
+	outTable->bins = bins;
+	outTable->entryPool = entryPool;
+	return outTable;
+}
+static HashEntry_StateToInt **hashGetEntryRef_StateToInt(HashTable_StateToInt *table, TicTacToeState key, int binIndex)
+{
+	assert(binIndex >= 0 && binIndex < table->binCount);
+	HashEntry_StateToInt **ppEntry;
+	for(ppEntry = &(table->bins[binIndex]);
+		NULL != *ppEntry;
+		ppEntry = &(*ppEntry)->next)
+	{
+		if (key == (*ppEntry)->key)
+			return ppEntry;
+	}
+	return NULL;
+}
+static int32_t tttGetVertexId(HashTable_StateToInt *table, TicTacToeState state)
+{
+	int binIndex = state % (table->binCount); /* lamest hash function ever */
+	HashEntry_StateToInt **ppEntry = hashGetEntryRef_StateToInt(table, state, binIndex);
+	if (NULL == ppEntry)
+		return -1; /* not found */
+	return (*ppEntry)->value;
+}
+static void tttSetVertexId(HashTable_StateToInt *table, TicTacToeState state, int32_t vertexId)
+{
+	int binIndex = state % (table->binCount); /* lamest hash function ever */
+	HashEntry_StateToInt **ppEntry = hashGetEntryRef_StateToInt(table, state, binIndex);
+	if (NULL != ppEntry)
+	{
+		assert(0); /* Shouldn't be updating any table entries in this use case */
+		(*ppEntry)->value = vertexId;
+	}
+	else
+	{
+		assert(table->freeEntryIndex < table->entryCapacity);
+		HashEntry_StateToInt *newEntry = table->entryPool + table->freeEntryIndex;
+		table->freeEntryIndex += 1;
+		newEntry->key = state;
+		newEntry->value = vertexId;
+		newEntry->next = table->bins[binIndex];
+		table->bins[binIndex] = newEntry;
+	}
+}
+
+static void addMovesForState(AlgoGraph graph, HashTable_StateToInt *table, int32_t vertexId)
 {
 	TicTacToeState state;
 	ALGO_VALIDATE( algoGraphGetVertexData(graph, vertexId, (AlgoData*)&state) );
+	char player = tttGetNextPlayer(state);
 	int iCell = 0;
 	for(iCell = 0; iCell<9; ++iCell)
 	{
@@ -137,17 +223,17 @@ static void addMovesForState(AlgoGraph graph, int32_t stateVertexIds[], int32_t 
 		TicTacToeState nextState = tttSetCell(state, iCell, player);
 		char nextStateWinner = tttGetWinner(nextState);
 		int nextStateIsNew = 0;
-		int32_t nextVertexId = stateVertexIds[nextState];
+		int32_t nextVertexId = tttGetVertexId(table, nextState);
 		if (nextVertexId == -1)
 		{
 			ALGO_VALIDATE( algoGraphAddVertex(graph, algoDataFromInt(nextState), &nextVertexId) );
-			stateVertexIds[nextState] = nextVertexId;
+			tttSetVertexId(table, nextState, nextVertexId);
 			nextStateIsNew = 1;
 		}
 		ALGO_VALIDATE( algoGraphAddEdge(graph, vertexId, nextVertexId) );
 		if (nextStateIsNew && (nextStateWinner == ' '))
 		{
-			addMovesForState(graph, stateVertexIds, nextVertexId, (player == 'X') ? 'O' : 'X');
+			addMovesForState(graph, table, nextVertexId);
 		}
 	}
 }
@@ -175,6 +261,7 @@ static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
 		(void)nextNextPlayer;
 	}
 }
+
 static void testTicTacToe(void)
 {
 	AlgoGraph graph;
@@ -192,16 +279,16 @@ static void testTicTacToe(void)
 	ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected, graphBuffer, graphBufferSize) );
 	ALGO_VALIDATE( algoGraphValidate(graph) );
 
-	const size_t kNumStatesConservative = 1 << (9+9); /* all possible states, even illegal ones. */
-	int32_t *stateToVertexId = (int32_t*)malloc(kNumStatesConservative*sizeof(int32_t));
-	for(int iState=0; iState<kNumStatesConservative; ++iState)
-	{
-		stateToVertexId[iState] = -1;
-	}
-	
+	size_t hashTableBufferSize = hashBufferSize_StateToInt(8192, kVertexCapacity);
+	void *hashTableBuffer = malloc(hashTableBufferSize);
+	HashTable_StateToInt *table = hashCreate_StateToInt(hashTableBuffer, hashTableBufferSize, 8192, kVertexCapacity);
+	assert(table);
+
 	TicTacToeState startState = 0;
-	ALGO_VALIDATE( algoGraphAddVertex(graph, algoDataFromInt(startState), stateToVertexId+startState) );
-	addMovesForState(graph, stateToVertexId, stateToVertexId[startState], 'X');
+	int32_t startVertexId = 0;
+	ALGO_VALIDATE( algoGraphAddVertex(graph, algoDataFromInt(startState), &startVertexId) );
+	tttSetVertexId(table, startState, startVertexId);
+	addMovesForState(graph, table, startVertexId);
 
 	size_t dfsBufferSize = 0;
 	ALGO_VALIDATE( algoGraphDfsBufferSize(&dfsBufferSize, graph) );
@@ -222,11 +309,30 @@ static void testTicTacToe(void)
 						set edge data as a winner
 
 		*/		
-	ALGO_VALIDATE( algoGraphDfs(graph, stateToVertexId[startState], vertexParents, kVertexCapacity,
+	ALGO_VALIDATE( algoGraphDfs(graph, startVertexId, vertexParents, kVertexCapacity,
 		dfsValidateVertex, NULL, NULL, dfsBuffer, dfsBufferSize) );
 	free(dfsBuffer);
 
-	free(stateToVertexId);
+#if 0 /* just some quicky hash table analysis */
+	int iBin=0;
+	float avgLength = 0;
+	int maxLength = 0;
+	for(iBin=0; iBin<table->binCount; ++iBin)
+	{
+		HashEntry_StateToInt *entry = table->bins[iBin];
+		int length = 0;
+		while(entry)
+		{
+			length += 1;
+			entry = entry->next;
+		}
+		avgLength += length;
+		if (length > maxLength)
+			maxLength = length;
+	}
+	avgLength *= (1.0f / (float)(table->binCount));
+#endif
+	free(hashTableBuffer);
 	free(graphBuffer);
 }
 
