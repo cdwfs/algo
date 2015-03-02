@@ -18,6 +18,7 @@ IF(MSVC)
 	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4 /we4013 /we4020")
 ELSEIF(UNIX)
 	set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -march=native)
 ENDIF()
 
 set(exe_name test_allocpool)
