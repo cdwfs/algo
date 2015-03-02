@@ -304,13 +304,13 @@ int main(void)
 			break;
 		if (t3GetNextPlayer(currentState) == 'X')
 		{
-			printf("move [0..8]: ");
 			int moveCell = -1;
 			do
 			{
-				scanf_s("%d", &moveCell);
+				printf("move [0..8]: ");
+				zomboScanf("%d", &moveCell);
 			}
-			while(moveCell < 0 || moveCell > 8);
+			while(moveCell < 0 || moveCell > 8 || t3GetCell(currentState, moveCell) != ' ');
 			currentState = t3SetCell(currentState, moveCell, 'X');
 		}
 		else
