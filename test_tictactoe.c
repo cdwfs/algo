@@ -203,7 +203,9 @@ static void addMovesForState(AlgoGraph graph, HashTable_T3State *table, T3State 
 static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
 {
 	T3State state = 0;
-	ALGO_VALIDATE( algoGraphGetVertexData(graph, vertexId, (AlgoData*)&state) );
+	AlgoData vertData;
+	ALGO_VALIDATE( algoGraphGetVertexData(graph, vertexId, &vertData) );
+	state = vertData.asInt;
 	assert( t3IsValid(state) );
 	T3Score score = t3GetScore(state);
 	int32_t degree = -1;
@@ -217,7 +219,9 @@ static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
 	for(int iEdge=0; iEdge<degree; ++iEdge)
 	{
 		T3State nextState = 0;
-		ALGO_VALIDATE( algoGraphGetVertexData(graph, edges[iEdge], (AlgoData*)&nextState) );
+		AlgoData edgeData;
+		ALGO_VALIDATE( algoGraphGetVertexData(graph, edges[iEdge], &edgeData) );
+		nextState = edgeData.asInt;
 		char nextNextPlayer = t3GetNextPlayer(nextState);
 		assert(nextPlayer != nextNextPlayer);
 		(void)nextPlayer;

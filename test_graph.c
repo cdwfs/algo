@@ -118,7 +118,9 @@ int main(void)
 			for(iRoommate=0; iRoommate<degree; ++iRoommate)
 			{
 				Person *roommate = NULL;
-				ALGO_VALIDATE( algoGraphGetVertexData(graph, roommateIds[iRoommate], (AlgoData*)&roommate) );
+				AlgoData vertData;
+				ALGO_VALIDATE( algoGraphGetVertexData(graph, roommateIds[iRoommate], &vertData) );
+				roommate = vertData.asPtr;
 				printf("\t%s\n", roommate->name);
 			}
 		}
@@ -186,7 +188,9 @@ int main(void)
 			for(iRoommate=0; iRoommate<degree; ++iRoommate)
 			{
 				Person *roommate = NULL;
-				ALGO_VALIDATE( algoGraphGetVertexData(graph, roommateIds[iRoommate], (AlgoData*)&roommate) );
+				AlgoData vertData;
+				ALGO_VALIDATE( algoGraphGetVertexData(graph, roommateIds[iRoommate], &vertData) );
+				roommate = vertData.asPtr;
 				printf("\t%s\n", roommate->name);
 			}
 		}
