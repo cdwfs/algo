@@ -37,20 +37,20 @@ static Person people[kNumPeople] = {
 static void processPersonEarly(AlgoGraph graph, int32_t personId)
 {
 	(void)graph;
-	assert(personId >= 0 && personId < kNumPeople);
+	ZOMBO_ASSERT(personId >= 0 && personId < kNumPeople, "invalid personId %d", personId);
 	printf("begin processing %s:\n", people[personId].name);
 }
 static void processEdge(AlgoGraph graph, int32_t p0, int32_t p1)
 {
 	(void)graph;
-	assert(p0 >= 0 && p0 < kNumPeople);
-	assert(p1 >= 0 && p1 < kNumPeople);
+	ZOMBO_ASSERT(p0 >= 0 && p0 < kNumPeople, "invalid personId %d", p0);
+	ZOMBO_ASSERT(p1 >= 0 && p1 < kNumPeople, "invalid personId %d", p1);
 	printf("\tedge to %s\n", people[p1].name);
 }
 static void processPersonLate(AlgoGraph graph, int32_t personId)
 {
 	(void)graph;
-	assert(personId >= 0 && personId < kNumPeople);
+	ZOMBO_ASSERT(personId >= 0 && personId < kNumPeople, "invalid personId %d", personId);
 	printf(" done processing %s\n", people[personId].name);
 }
 

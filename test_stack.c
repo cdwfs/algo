@@ -15,7 +15,7 @@ static int testStackPush(AlgoStack stack, const AlgoData elem)
 	ALGO_VALIDATE( algoStackPush(stack, elem) );
 
 	ALGO_VALIDATE( algoStackCurrentSize(stack, &afterSize) );
-	assert(beforeSize+1 == afterSize);
+	ZOMBO_ASSERT(beforeSize+1 == afterSize, "stack grew by more than one element");
 	return 1;
 }
 
@@ -32,7 +32,7 @@ static int testStackPop(AlgoStack stack, AlgoData *outElem)
 	ALGO_VALIDATE( algoStackPop(stack, outElem) );
 
 	ALGO_VALIDATE( algoStackCurrentSize(stack, &afterSize) );
-	assert(beforeSize-1 == afterSize);
+	ZOMBO_ASSERT(beforeSize-1 == afterSize, "stack shrunk by more than one element");
 
 	return 1;
 }
@@ -49,83 +49,72 @@ int main(void)
 
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
-	kStackCapacity = 1 + (rand() % 1024);
-	printf("Testing AlgoStack (capacity: %d)\n", kStackCapacity);
-
-	nextToCheck = kStackCapacity-1;
-	ALGO_VALIDATE( algoStackBufferSize(&stackBufferSize, kStackCapacity) );
-	stackBuffer = malloc(stackBufferSize);
-	ALGO_VALIDATE( algoStackCreate(&stack, kStackCapacity, stackBuffer, stackBufferSize) );
-
-	ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
-	assert(0 == currentSize);
-
-	/* Make sure we can't remove elements from an empty stack. */
+	for(;;)
 	{
-		AlgoError err;
-		AlgoData elem;
+		nextToAdd = 0;
+		nextToCheck = 0;
+		kStackCapacity = 1 + (rand() % 1024);
+		printf("Testing AlgoStack (capacity: %d)\n", kStackCapacity);
+
+		nextToCheck = kStackCapacity-1;
+		ALGO_VALIDATE( algoStackBufferSize(&stackBufferSize, kStackCapacity) );
+		stackBuffer = malloc(stackBufferSize);
+		ALGO_VALIDATE( algoStackCreate(&stack, kStackCapacity, stackBuffer, stackBufferSize) );
+
 		ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
-		assert(currentSize == 0);
-		err = algoStackPop(stack, &elem);
-		if (err != kAlgoErrorOperationFailed)
+		ZOMBO_ASSERT(0 == currentSize, "newly created stack has size=%d", currentSize);
+
+		/* Make sure we can't remove elements from an empty stack. */
 		{
-			fprintf(stderr, "ERROR: algoStackPop() on an empty stack returned %d (expected %d)\n",
-				err, kAlgoErrorOperationFailed);
-			assert(err == kAlgoErrorOperationFailed);
+			AlgoError err;
+			AlgoData elem;
+			ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
+			err = algoStackPop(stack, &elem);
+			ZOMBO_ASSERT(err == kAlgoErrorOperationFailed, "ERROR: algoStackPop() on an empty stack returned %d (expected %d)\n",
+						 err, kAlgoErrorOperationFailed);
 		}
-	}
 
-	/* Fill the stack. */
-	while (nextToAdd < kStackCapacity)
-	{
-		testStackPush(stack, algoDataFromInt(nextToAdd++));
-	}
-
-	/* Make sure we can't add elements to a full stack. */
-	{
-		AlgoError err;
-		ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
-		assert(currentSize == kStackCapacity);
-		err = algoStackPush(stack, algoDataFromInt(0));
-		if (err != kAlgoErrorOperationFailed)
+		/* Fill the stack. */
+		while (nextToAdd < kStackCapacity)
 		{
-			fprintf(stderr, "ERROR: algoStackPush() on a full stack returned %d (expected %d)\n",
-				err, kAlgoErrorOperationFailed);
-			assert(err == kAlgoErrorOperationFailed);
+			testStackPush(stack, algoDataFromInt(nextToAdd++));
 		}
-	}
 
-	/* Empty the stack. */
-	while (nextToCheck >= 0)
-	{
-		AlgoData elem = algoDataFromInt(-1);
-		testStackPop(stack, &elem);
-		if (elem.asInt != nextToCheck)
+		/* Make sure we can't add elements to a full stack. */
 		{
-			fprintf(stderr, "ERROR: algoStackPop() retrieved unexpected value %d (expected %d)\n",
-				elem.asInt, nextToCheck);
-			assert(elem.asInt == nextToCheck);
+			AlgoError err;
+			ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
+			ZOMBO_ASSERT(currentSize == kStackCapacity, "full stack has currentSize=%d, capacity=%d", currentSize, kStackCapacity);
+			err = algoStackPush(stack, algoDataFromInt(0));
+			ZOMBO_ASSERT(err == kAlgoErrorOperationFailed, "ERROR: algoStackPush() on a full stack returned %d (expected %d)\n",
+						 err, kAlgoErrorOperationFailed);
 		}
-		nextToCheck -= 1;
-	}
 
-	/* Make sure we can't remove elements from an empty stack. */
-	{
-		AlgoError err;
-		AlgoData elem;
-		ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
-		assert(currentSize == 0);
-		err = algoStackPop(stack, &elem);
-		if (err != kAlgoErrorOperationFailed)
+		/* Empty the stack. */
+		while (nextToCheck >= 0)
 		{
-			fprintf(stderr, "ERROR: algoStackPop() on an empty stack returned %d (expected %d)\n",
-				err, kAlgoErrorOperationFailed);
-			assert(err == kAlgoErrorOperationFailed);
+			AlgoData elem = algoDataFromInt(-1);
+			testStackPop(stack, &elem);
+			ZOMBO_ASSERT(elem.asInt == nextToCheck, "ERROR: algoStackPop() retrieved unexpected value %d (expected %d)\n",
+						 elem.asInt, nextToCheck);
+			nextToCheck -= 1;
 		}
-	}
 
-#if defined(_MSC_VER)
-	_ASSERTE(_CrtCheckMemory());
-#endif
-	free(stackBuffer);
+		/* Make sure we can't remove elements from an empty stack. */
+		{
+			AlgoError err;
+			AlgoData elem;
+			ALGO_VALIDATE( algoStackCurrentSize(stack, &currentSize) );
+			ZOMBO_ASSERT(currentSize == 0, "empty stack has size=%d", currentSize);
+			err = algoStackPop(stack, &elem);
+			ZOMBO_ASSERT(err == kAlgoErrorOperationFailed, "ERROR: algoStackPop() on an empty stack returned %d (expected %d)\n",
+						 err, kAlgoErrorOperationFailed);
+		}
+
+	#if defined(_MSC_VER)
+		_ASSERTE(_CrtCheckMemory());
+	#endif
+		free(stackBuffer);
+		printf("No errors detected\n\n");
+	}
 }

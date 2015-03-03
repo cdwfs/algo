@@ -2,12 +2,8 @@
 #define ALGO_TEST_COMMON_H
 
 #define ALGO_IMPLEMENTATION
-#ifdef _MSC_VER
-#	define ALGO_ASSERT(cond) if (!(cond)) __debugbreak()
-#endif
 #include "algo.h"
-
-#include <assert.h>
+#include "platform.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,24 +13,32 @@
 #include <crtdbg.h>
 #endif
 
-#ifdef _MSC_VER
-#	define ALGO_DEBUGBREAK() __debugbreak()
-#elif defined(__GNUC__) || defined(__clang__)
-#	define ALGO_DEBUGBREAK() asm("int $3")
+#if 1
+#	define ALGO_VALIDATE(expr) ZOMBO_RETVAL_CHECK(kAlgoErrorNone, expr)
 #else
-#   error Unsupported compiler
-#endif
-
-#define ALGO_VALIDATE(expr) do {										\
+#	ifndef __has_feature
+#		define __has_feature(x) 0 /* compatibility with non-clang compilers. */
+#	endif
+#	ifndef CLANG_ANALYZER_NORETURN
+#		if __has_feature(attribute_analyzer_noreturn)
+#		    define CLANG_ANALYZER_NORETURN __attribute__((analyzer_noreturn))
+#		else
+#		    define CLANG_ANALYZER_NORETURN
+#		endif
+#	endif
+void algo_assert_handler(void) CLANG_ANALYZER_NORETURN {}
+#	define ALGO_VALIDATE(expr) do {										\
 		AlgoError error = ( expr );										\
 		if (kAlgoErrorNone != error) {									\
 			fprintf(stderr, "ERROR: %s returned %d\n", #expr, error);	\
 			ALGO_DEBUGBREAK();											\
+            algo_assert_handler();                                      \
 		}																\
 	} while(0,0)
+#endif
 
 #if !defined(max)
-#define max(x,y) ((x)>(y))?(x):(y)
+#	define max(x,y) ((x)>(y))?(x):(y)
 #endif
 
 #endif

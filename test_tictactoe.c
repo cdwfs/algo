@@ -16,7 +16,7 @@ static int t3IsValid(T3State state)
 }
 static char t3GetNextPlayer(const T3State state)
 {
-	return (__popcnt(state) % 2) ? 'O' : 'X';
+	return (ZOMBO_POPCNT32(state) % 2) ? 'O' : 'X';
 }
 static char t3GetCell(const T3State state, int cellIndex)
 {
@@ -24,10 +24,10 @@ static char t3GetCell(const T3State state, int cellIndex)
 }
 static T3State t3SetCell(const T3State state, uint32_t cellIndex, char value)
 {
-	assert(value == 'X' || value == 'x' || value == 'O' || value == 'o');
-	assert(t3IsValid(state));
-	assert(cellIndex<9);
-	assert(t3GetCell(state, cellIndex) == ' '); /* cell must be empty */
+	ZOMBO_ASSERT(value == 'X' || value == 'x' || value == 'O' || value == 'o', "value (%c) must be in [XxOo]", value);
+	ZOMBO_ASSERT(t3IsValid(state), "stated 0x%08X is not valid", state);
+	ZOMBO_ASSERT(cellIndex<9, "cellIndex (%d) must be in [0..8]", cellIndex);
+	ZOMBO_ASSERT(t3GetCell(state, cellIndex) == ' ', "cell %d is not empty", cellIndex);
 	cellIndex += ((value == 'X' || value == 'x') ? 0 : 9);
 	return state | (1<<cellIndex);
 }
@@ -49,7 +49,7 @@ static T3Score t3GetScore(const T3State state)
 		0x111, /* 0,4,8 */
 		0x054, /* 2,4,6 */
 	};
-	assert(t3IsValid(state));
+	ZOMBO_ASSERT(t3IsValid(state), "state (0x%08X) is not valid", state);
 	int iMask;
 	for(iMask=0; iMask<8; ++iMask)
 	{
@@ -109,7 +109,7 @@ static HashTable_T3State *hashCreate_T3State(void *buffer, size_t bufferSize, in
 
 	HashTable_T3State *outTable = (HashTable_T3State*)bufferNext;
 	bufferNext += sizeof(HashTable_T3State);
-	assert( (size_t)(bufferNext-(uint8_t*)buffer) == expectedBufferSize );
+	ZOMBO_ASSERT( (size_t)(bufferNext-(uint8_t*)buffer) == expectedBufferSize, "buffer usage did not match expected buffer size" );
 	outTable->binCount = binCount;
 	outTable->entryCapacity = entryCapacity;
 	outTable->freeEntryIndex = 0;
@@ -119,7 +119,8 @@ static HashTable_T3State *hashCreate_T3State(void *buffer, size_t bufferSize, in
 }
 static HashEntry_T3State **hashGetEntryRef_T3State(HashTable_T3State *table, T3State key, int binIndex)
 {
-	assert(binIndex >= 0 && binIndex < table->binCount);
+	ZOMBO_ASSERT(table, "table must not be NULL");
+	ZOMBO_ASSERT(binIndex >= 0 && binIndex < table->binCount, "binIndex (%d) must be in the range [0..%d)", binIndex, table->binCount);
 	HashEntry_T3State **ppEntry;
 	for(ppEntry = &(table->bins[binIndex]);
 		NULL != *ppEntry;
@@ -132,17 +133,19 @@ static HashEntry_T3State **hashGetEntryRef_T3State(HashTable_T3State *table, T3S
 }
 static HashEntry_T3State *hashGetEntry_T3State(HashTable_T3State *table, T3State key)
 {
+	ZOMBO_ASSERT(table, "table must not be NULL");
 	int binIndex = (key ^ (key>>9)) % table->binCount;
 	HashEntry_T3State **ppEntry = hashGetEntryRef_T3State(table, key, binIndex);
 	return ppEntry ? *ppEntry : NULL;
 }
 static HashEntry_T3State *hashAddEntry_T3State(HashTable_T3State *table, T3State key)
 {
+	ZOMBO_ASSERT(table, "table must not be NULL");
 	int binIndex = (key ^ (key>>9)) % table->binCount;
 	HashEntry_T3State **ppEntry = hashGetEntryRef_T3State(table, key, binIndex);
 	if (NULL != ppEntry)
 		return *ppEntry;
-	assert(table->freeEntryIndex < table->entryCapacity);
+	ZOMBO_ASSERT(table->freeEntryIndex < table->entryCapacity, "freeEntryIndex (%d) must be in the range [0..%d)", table->freeEntryIndex, table->entryCapacity);
 	HashEntry_T3State *newEntry = table->entryPool + table->freeEntryIndex;
 	table->freeEntryIndex += 1;
 	newEntry->key = key;
@@ -160,7 +163,7 @@ static int isBetterScore(T3Score newScore, T3Score oldScore, char player)
 static void addMovesForState(AlgoGraph graph, HashTable_T3State *table, T3State state)
 {
 	HashEntry_T3State *entry = hashGetEntry_T3State(table, state);
-	assert(entry);
+	ZOMBO_ASSERT(entry, "entry must not be NULL");
 	int32_t vertexId = entry->vertexId;
 	char player = t3GetNextPlayer(state);
 	if (t3IsGameOver(state))
@@ -183,7 +186,7 @@ static void addMovesForState(AlgoGraph graph, HashTable_T3State *table, T3State 
 			int32_t nextVertexId;
 			ALGO_VALIDATE( algoGraphAddVertex(graph, algoDataFromInt(nextState), &nextVertexId) );
 			nextEntry = hashAddEntry_T3State(table, nextState);
-			assert(nextEntry);
+			ZOMBO_ASSERT(nextEntry, "nextEntry must not be NULL");
 			nextEntry->vertexId = nextVertexId;
 			nextStateIsNew = 1;
 		}
@@ -206,12 +209,12 @@ static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
 	AlgoData vertData;
 	ALGO_VALIDATE( algoGraphGetVertexData(graph, vertexId, &vertData) );
 	state = vertData.asInt;
-	assert( t3IsValid(state) );
+	ZOMBO_ASSERT( t3IsValid(state), "vertex %d [0x%08X]: state is invalid", vertexId, state );
 	T3Score score = t3GetScore(state);
 	int32_t degree = -1;
 	ALGO_VALIDATE( algoGraphGetVertexDegree(graph, vertexId, &degree) );
-	assert(degree <= 9);
-	assert(score == kT3ScoreDraw || degree == 0);
+	ZOMBO_ASSERT(degree <= 9, "vertex %d [0x%08X]: invalid degree %d [must be 0..9]", vertexId, state, degree);
+	ZOMBO_ASSERT(score == kT3ScoreDraw || degree == 0, "vertex %d [0x%08X]: score=%d, but degree=%d", vertexId, state, score, degree);
 	/* TODO: count Os and Xs; make sure Xs == Os or Xs == Os+1 */
 	int32_t edges[9];
 	ALGO_VALIDATE( algoGraphGetVertexEdges(graph, vertexId, degree, edges) );
@@ -223,9 +226,7 @@ static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
 		ALGO_VALIDATE( algoGraphGetVertexData(graph, edges[iEdge], &edgeData) );
 		nextState = edgeData.asInt;
 		char nextNextPlayer = t3GetNextPlayer(nextState);
-		assert(nextPlayer != nextNextPlayer);
-		(void)nextPlayer;
-		(void)nextNextPlayer;
+		ZOMBO_ASSERT(nextPlayer != nextNextPlayer, "player takes two turns in a row");
 	}
 }
 
@@ -296,7 +297,7 @@ int main(void)
 	for(;;)
 	{
 		HashEntry_T3State *entry = hashGetEntry_T3State(table, currentState);
-		assert(entry);
+		ZOMBO_ASSERT(entry != 0, "entry must not be zero");
 		printf("%c's turn:\n", t3GetNextPlayer(currentState));
 		t3Print(currentState);
 		printf("score: %2d   bestMove: %d\n\n", entry->score, entry->bestMove);

@@ -25,7 +25,7 @@ static void allocationSetBlock(Allocation *outAlloc, void *newBlock, size_t newB
 	}
 	else
 	{
-		assert(0 == newBlockBytes);
+		ZOMBO_ASSERT(0 == newBlockBytes, "newBlockBytes (%lu) should be zero", (uint64_t)newBlockBytes);
 	}
 }
 static int isAllocationValid(const Allocation *alloc)
@@ -80,9 +80,8 @@ int main(void)
 					ALGO_VALIDATE( algoAllocPoolAlloc(allocPool, &block) );
 					if(NULL == block)
 					{
-						printf("\tERROR: shouldn't be returning NULL in the first round of allocations...\n");
 						++errorCount;
-						assert(0);
+						ZOMBO_ERROR("\tERROR: shouldn't be returning NULL in the first round of allocations...");
 					}
 					allocationSetBlock(allocations+iAlloc, block, elemSize);
 				}
@@ -92,10 +91,9 @@ int main(void)
 			{
 				if (!isAllocationValid(allocations+iAlloc))
 				{
-					printf("\tERROR: Corruption in alloc #%05d: ptr=%p\n",
-						allocations[iAlloc].id, allocations[iAlloc].block);
 					++errorCount;
-					assert(0);
+					ZOMBO_ERROR("\tERROR: Corruption in alloc #%05d: ptr=%p\n",
+						allocations[iAlloc].id, allocations[iAlloc].block);
 				}
 			}
 			/* Free half the previous allocations */
@@ -112,10 +110,9 @@ int main(void)
 			{
 				if (!isAllocationValid(allocations+iAlloc))
 				{
-					printf("\tERROR: Corruption in alloc #%05d: ptr=%p\n",
-						allocations[iAlloc].id, allocations[iAlloc].block);
 					++errorCount;
-					assert(0);
+					ZOMBO_ERROR("\tERROR: Corruption in alloc #%05d: ptr=%p\n",
+						allocations[iAlloc].id, allocations[iAlloc].block);
 				}
 			}
 			/* Allocate all remaining blocks */
@@ -127,9 +124,8 @@ int main(void)
 					ALGO_VALIDATE( algoAllocPoolAlloc(allocPool, &block) );
 					if(NULL == block)
 					{
-						printf("\tERROR: shouldn't be returning NULL in the second round of allocations...\n");
 						++errorCount;
-						assert(0);
+						ZOMBO_ERROR("\tERROR: shouldn't be returning NULL in the second round of allocations...\n");
 					}
 					allocationSetBlock(allocations+iAlloc, block, elemSize);
 				}
@@ -139,10 +135,9 @@ int main(void)
 			{
 				if (!isAllocationValid(allocations+iAlloc))
 				{
-					printf("\tERROR: Corruption in alloc #%05d: ptr=%p\n",
-						allocations[iAlloc].id, allocations[iAlloc].block);
 					++errorCount;
-					assert(0);
+					ZOMBO_ERROR("\tERROR: Corruption in alloc #%05d: ptr=%p\n",
+						allocations[iAlloc].id, allocations[iAlloc].block);
 				}
 			}
 			/* Attempt one more allocation, which SHOULD fail */
@@ -152,9 +147,8 @@ int main(void)
 				if (NULL != shouldBeNull ||
 					kAlgoErrorNone == err)
 				{
-					printf("\tERROR: Allocation succeeded from full pool! ptr=%p\n", shouldBeNull);
 					++errorCount;
-					assert(0);
+					ZOMBO_ERROR("\tERROR: Allocation succeeded from full pool! ptr=%p\n", shouldBeNull);
 				}
 			}
 			/* Free all allocations */

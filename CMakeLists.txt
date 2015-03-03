@@ -11,7 +11,7 @@ MACRO (cmp_IDE_SOURCE_PROPERTIES SOURCE_PATH HEADERS SOURCES)
     source_group(${source_group_path} FILES ${HEADERS} ${SOURCES})
 ENDMACRO (cmp_IDE_SOURCE_PROPERTIES NAME HEADERS SOURCES INSTALL_FILES)
 
-SET(headers algo.h test_common.h)
+SET(headers algo.h platform.h test_common.h)
 
 IF(MSVC)
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)

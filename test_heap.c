@@ -15,12 +15,12 @@ static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapInsert(heap, newKey, newData) );
 
 	/* Not a heap requirement; just making sure it's a valid index for heapContents[]. */
-	assert(newKey.asInt < capacity);
+	ZOMBO_ASSERT(newKey.asInt < capacity, "newKey (%d) is invalid", newKey.asInt);
 	                           
 	heapContents[newKey.asInt] += 1;
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
-	assert(beforeSize+1 == afterSize);
+	ZOMBO_ASSERT(beforeSize+1 == afterSize, "heap grew by more than one entry");
 	ALGO_VALIDATE( algoHeapValidate(heap) );
 	return 1;
 }
@@ -41,24 +41,24 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	ALGO_VALIDATE( algoHeapPeek(heap, &minKeyPeek, &minDataPeek) );
 	ALGO_VALIDATE( algoHeapPop(heap, &minKey, &minData) );
 	/* Peeked data should match popped data */
-	assert(minKeyPeek.asInt == minKey.asInt);
-	assert(minDataPeek.asInt == minData.asInt);
+	ZOMBO_ASSERT(minKeyPeek.asInt == minKey.asInt, "Peeked key (%d) does not match popped key (%d)", minKeyPeek.asInt, minKey.asInt);
+	ZOMBO_ASSERT(minDataPeek.asInt == minData.asInt, "Peeked data (%d) does not match popped data (%d)", minDataPeek.asInt, minData.asInt);
 	/* key and data must match (in this test environment) */
-	assert(minKey.asInt == minData.asInt);
+	ZOMBO_ASSERT(minKey.asInt == minData.asInt, "minKey (%d) must match minData (%d)", minKey.asInt, minData.asInt);
 	/* Not a heap requirement; just making sure it's a valid index for heapContents[]. */
-	assert(minKey.asInt < capacity);
+	ZOMBO_ASSERT(minKey.asInt < capacity, "minKey (%d) must be in the range [0..%d)", minKey.asInt, capacity);
 	/* Make sure minKey is the smallest key in the heap (all counters below it must be zero). */
 	for(iVal=0; iVal<minKey.asInt; ++iVal)
 	{
-		assert(heapContents[iVal] == 0);
+		ZOMBO_ASSERT(heapContents[iVal] == 0, "minKey (%d) is not the smallest key in the heap", minKey.asInt);
 	}
 	/* Make sure minKey is in the heap in the first place */
-	assert(heapContents[minKey.asInt] > 0);
+	ZOMBO_ASSERT(heapContents[minKey.asInt] > 0, "minKey (%d) is not actually in the heap", minKey.asInt);
 
 	heapContents[minKey.asInt] -= 1;
 
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
-	assert(beforeSize-1 == afterSize);
+	ZOMBO_ASSERT(beforeSize-1 == afterSize, "heap shrunk by more than one element");
 	ALGO_VALIDATE( algoHeapValidate(heap) );
 	return 1;
 }
@@ -85,7 +85,7 @@ int main(void)
 	heapBuffer = malloc(heapBufferSize);
 	ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, algoDataCompareIntAscending, heapBuffer, heapBufferSize) );
 	ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
-	assert(0 == currentSize);
+	ZOMBO_ASSERT(0 == currentSize, "newly created heap has size=%d", currentSize);
 	for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)
 	{
 		int32_t numAdds = rand() % (kHeapCapacity-currentSize);
@@ -111,7 +111,7 @@ int main(void)
 		{
 			elemCount += heapContents[iVal];
 		}
-		assert(elemCount == currentSize);
+		ZOMBO_ASSERT(elemCount == currentSize, "elemCount (%d) != currentSize (%d)", elemCount, currentSize);
 		printf(" - %d elements left!\n\n", currentSize);
 #if defined(_MSC_VER)
 		_ASSERTE(_CrtCheckMemory());

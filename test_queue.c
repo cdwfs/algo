@@ -15,7 +15,7 @@ static int testQueueInsert(AlgoQueue queue, const AlgoData elem)
 	ALGO_VALIDATE( algoQueueInsert(queue, elem) );
 
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
-	assert(beforeSize+1 == afterSize);
+	ZOMBO_ASSERT(beforeSize+1 == afterSize, "queue grew by more than one element");
 	return 1;
 }
 
@@ -32,7 +32,7 @@ static int testQueueRemove(AlgoQueue queue, AlgoData *outElem)
 	ALGO_VALIDATE( algoQueueRemove(queue, outElem) );
 
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
-	assert(beforeSize-1 == afterSize);
+	ZOMBO_ASSERT(beforeSize-1 == afterSize, "queue shrunk by more than one element");
 
 	return 1;
 }
@@ -58,7 +58,7 @@ int main(void)
 	ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity, queueBuffer, queueBufferSize) );
 
 	ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
-	assert(0 == currentSize);
+	ZOMBO_ASSERT(0 == currentSize, "newly created queue has size=%d", currentSize);
 
 	/* In this test, we alternate between adding a chunk of values to
 	   the end of the queue and removing a chunk from the front. */
@@ -67,7 +67,7 @@ int main(void)
 		const int32_t numAdds = 1 + (rand() % kQueueCapacity);
 		int32_t numRemoves;
 		int iAdd, iRemove;
-		assert(numAdds >= 0);
+		ZOMBO_ASSERT(numAdds >= 0, "numAdds must not be zero");
 		printf(" - Inserting at most %d elements...\n", numAdds);
 		for(iAdd=0; iAdd<numAdds; ++iAdd)
 		{
@@ -77,19 +77,16 @@ int main(void)
 		if (currentSize > kQueueCapacity)
 		{
 			fprintf(stderr, "ERROR: Queue size exceeds capacity\n");
-			assert(currentSize <= kQueueCapacity);
+			ZOMBO_ASSERT(currentSize <= kQueueCapacity, "currentSize (%d) exceeds queue capacity (%d)",
+						 currentSize, kQueueCapacity);
 		}
 
 		/* Make sure we can't add elements to a full queue. */
 		if (currentSize == kQueueCapacity)
 		{
 			AlgoError err = algoQueueInsert(queue, algoDataFromInt(0));
-			if (err != kAlgoErrorOperationFailed)
-			{
-				fprintf(stderr, "ERROR: algoQueueInsert() on a full queue returned %d (expected %d)\n",
-					err, kAlgoErrorOperationFailed);
-				assert(err == kAlgoErrorOperationFailed);
-			}
+			ZOMBO_ASSERT(err == kAlgoErrorOperationFailed, "ERROR: algoQueueInsert() on a full queue returned %d (expected %d)\n",
+				err, kAlgoErrorOperationFailed);
 		}
 
 		/* Make sure we can't remove elements from an empty queue. */
@@ -97,12 +94,8 @@ int main(void)
 		{
 			AlgoData elem;
 			AlgoError err = algoQueueRemove(queue, &elem);
-			if (err != kAlgoErrorOperationFailed)
-			{
-				fprintf(stderr, "ERROR: algoQueueRemove() on an empty queue returned %d (expected %d)\n",
+			ZOMBO_ASSERT(err == kAlgoErrorOperationFailed, "ERROR: algoQueueRemove() on an empty queue returned %d (expected %d)\n",
 					err, kAlgoErrorOperationFailed);
-				assert(err == kAlgoErrorOperationFailed);
-			}
 		}
 
 		numRemoves = 1 + (rand() % currentSize);
@@ -111,19 +104,11 @@ int main(void)
 		{
 			AlgoData elem;
 			int nextToCheckInc = testQueueRemove(queue, &elem);
-			if (elem.asInt != nextToCheck)
-			{
-				fprintf(stderr, "ERROR: Queue element mismatch\n");
-				assert(elem.asInt == nextToCheck);
-			}
+			ZOMBO_ASSERT(elem.asInt == nextToCheck, "ERROR: Queue element mismatch\n");
 			nextToCheck += nextToCheckInc;
 		}
 		ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
-		if (currentSize > kQueueCapacity)
-		{
-			fprintf(stderr, "ERROR: Queue size exceeds capacity\n");
-			assert(currentSize <= kQueueCapacity);
-		}
+		ZOMBO_ASSERT(currentSize <= kQueueCapacity, "ERROR: Queue size exceeds capacity\n");
 
 		printf(" - %d elements left to check\n\n", max(0, kTestElemCount - nextToCheck));
 #if defined(_MSC_VER)
