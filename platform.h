@@ -137,8 +137,8 @@ extern "C"
 // popcnt
 #ifdef _MSC_VER
 #	include <intrin.h>
-#	define ZOMBO_POPCNT32(x) __popcnt()
-#	define ZOMBO_POPCNT64(x) __popcnt64()
+#	define ZOMBO_POPCNT32(x) __popcnt(x)
+#	define ZOMBO_POPCNT64(x) __popcnt64(x)
 #elif defined(__clang__)
 #	include <popcntintrin.h>
 #	define ZOMBO_POPCNT32(x) _mm_popcnt_u32(x)
