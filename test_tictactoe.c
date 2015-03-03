@@ -215,7 +215,9 @@ static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
 	ALGO_VALIDATE( algoGraphGetVertexDegree(graph, vertexId, &degree) );
 	ZOMBO_ASSERT(degree <= 9, "vertex %d [0x%08X]: invalid degree %d [must be 0..9]", vertexId, state, degree);
 	ZOMBO_ASSERT(score == kT3ScoreDraw || degree == 0, "vertex %d [0x%08X]: score=%d, but degree=%d", vertexId, state, score, degree);
-	/* TODO: count Os and Xs; make sure Xs == Os or Xs == Os+1 */
+	int xCount = ZOMBO_POPCNT32(state & 0x1FF);
+	int oCount = ZOMBO_POPCNT32(state & (0x1FF<<9));
+	ZOMBO_ASSERT(xCount == oCount || xCount == oCount+1, "vertex %d [0x%08X]: xCount=%d, oCount=%d", vertexId, state, xCount, oCount);
 	int32_t edges[9];
 	ALGO_VALIDATE( algoGraphGetVertexEdges(graph, vertexId, degree, edges) );
 	char nextPlayer = t3GetNextPlayer(state);
