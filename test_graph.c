@@ -34,22 +34,54 @@ static Person people[kNumPeople] = {
 	{"biy", -1},
 };
 
-static void processPersonEarly(AlgoGraph graph, int32_t personId)
+static void bfsProcessPersonEarly(AlgoGraph graph, AlgoGraphBfsState bfsState, int32_t personId, void *userData)
 {
 	(void)graph;
+	(void)bfsState;
+	(void)userData;
 	ZOMBO_ASSERT(personId >= 0 && personId < kNumPeople, "invalid personId %d", personId);
 	printf("begin processing %s:\n", people[personId].name);
 }
-static void processEdge(AlgoGraph graph, int32_t p0, int32_t p1)
+static void bfsProcessEdge(AlgoGraph graph, AlgoGraphBfsState bfsState, int32_t p0, int32_t p1, void *userData)
 {
 	(void)graph;
+	(void)bfsState;
+	(void)userData;
 	ZOMBO_ASSERT(p0 >= 0 && p0 < kNumPeople, "invalid personId %d", p0);
 	ZOMBO_ASSERT(p1 >= 0 && p1 < kNumPeople, "invalid personId %d", p1);
 	printf("\tedge to %s\n", people[p1].name);
 }
-static void processPersonLate(AlgoGraph graph, int32_t personId)
+static void bfsProcessPersonLate(AlgoGraph graph, AlgoGraphBfsState bfsState, int32_t personId, void *userData)
 {
 	(void)graph;
+	(void)bfsState;
+	(void)userData;
+	ZOMBO_ASSERT(personId >= 0 && personId < kNumPeople, "invalid personId %d", personId);
+	printf(" done processing %s\n", people[personId].name);
+}
+
+static void dfsProcessPersonEarly(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t personId, void *userData)
+{
+	(void)graph;
+	(void)dfsState;
+	(void)userData;
+	ZOMBO_ASSERT(personId >= 0 && personId < kNumPeople, "invalid personId %d", personId);
+	printf("begin processing %s:\n", people[personId].name);
+}
+static void dfsProcessEdge(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t p0, int32_t p1, void *userData)
+{
+	(void)graph;
+	(void)dfsState;
+	(void)userData;
+	ZOMBO_ASSERT(p0 >= 0 && p0 < kNumPeople, "invalid personId %d", p0);
+	ZOMBO_ASSERT(p1 >= 0 && p1 < kNumPeople, "invalid personId %d", p1);
+	printf("\tedge to %s\n", people[p1].name);
+}
+static void dfsProcessPersonLate(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t personId, void *userData)
+{
+	(void)graph;
+	(void)dfsState;
+	(void)userData;
 	ZOMBO_ASSERT(personId >= 0 && personId < kNumPeople, "invalid personId %d", personId);
 	printf(" done processing %s\n", people[personId].name);
 }
@@ -137,8 +169,13 @@ int main(void)
 		bfsBuffer = malloc(bfsBufferSize);
 		const int32_t bfsRoot = kCort;
 		printf("\n\nBFS search from %s...\n", people[bfsRoot].name);
+		AlgoGraphBfsCallbacks bfsCallbacks = {
+			bfsProcessPersonEarly, NULL,
+			bfsProcessEdge, NULL,
+			bfsProcessPersonLate, NULL
+		};
 		ALGO_VALIDATE( algoGraphBfs(graph, people[kCort].vertexId, parents, kNumPeople,
-			processPersonEarly, processEdge, processPersonLate, bfsBuffer, bfsBufferSize) );
+			bfsCallbacks, bfsBuffer, bfsBufferSize) );
 		for(iPerson=0; iPerson<kNumPeople; iPerson += 1)
 		{
 			printf("%s's parent is %s\n", people[iPerson].name,
@@ -159,8 +196,13 @@ int main(void)
 		dfsBuffer = malloc(dfsBufferSize);
 		const int32_t bfsRoot = kCort;
 		printf("\n\nDFS search from %s...\n", people[bfsRoot].name);
+		AlgoGraphDfsCallbacks dfsCallbacks = {
+			dfsProcessPersonEarly, NULL,
+			dfsProcessEdge, NULL,
+			dfsProcessPersonLate, NULL
+		};
 		ALGO_VALIDATE( algoGraphDfs(graph, people[kCort].vertexId, parents, kNumPeople,
-			processPersonEarly, processEdge, processPersonLate, dfsBuffer, dfsBufferSize) );
+			dfsCallbacks, dfsBuffer, dfsBufferSize) );
 		for(iPerson=0; iPerson<kNumPeople; iPerson += 1)
 		{
 			printf("%s's parent is %s\n", people[iPerson].name,

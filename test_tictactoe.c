@@ -203,8 +203,11 @@ static void addMovesForState(AlgoGraph graph, HashTable_T3State *table, T3State 
 	}
 }
 
-static void dfsValidateVertex(AlgoGraph graph, int32_t vertexId)
+static void dfsValidateVertex(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t vertexId, void *userData)
 {
+	(void)dfsState;
+	(void)userData;
+
 	T3State state = 0;
 	AlgoData vertData;
 	ALGO_VALIDATE( algoGraphGetVertexData(graph, vertexId, &vertData) );
@@ -269,8 +272,13 @@ int main(void)
 	ALGO_VALIDATE( algoGraphDfsBufferSize(&dfsBufferSize, graph) );
 	void *dfsBuffer = malloc(dfsBufferSize);
 	int32_t *vertexParents = malloc(kVertexCapacity*sizeof(int32_t));
+	AlgoGraphDfsCallbacks dfsCallbacks = {
+		dfsValidateVertex, NULL,
+		NULL, NULL,
+		NULL, NULL
+	};
 	ALGO_VALIDATE( algoGraphDfs(graph, startVertexId, vertexParents, kVertexCapacity,
-		dfsValidateVertex, NULL, NULL, dfsBuffer, dfsBufferSize) );
+		dfsCallbacks, dfsBuffer, dfsBufferSize) );
 	free(dfsBuffer);
 
 #if 0 /* just some quicky hash table analysis */

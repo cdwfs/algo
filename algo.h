@@ -289,8 +289,22 @@ ALGODEF AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId
 /** @brief Retrieve a vertex's optional user data field. */
 ALGODEF AlgoError algoGraphSetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData value);
 
-typedef void (*AlgoGraphProcessVertexFunc)(AlgoGraph graph, int32_t vertexId);
-typedef void (*AlgoGraphProcessEdgeFunc)(AlgoGraph graph, int32_t startVertexId, int32_t endVertexId);
+typedef struct AlgoGraphBfsStateImpl *AlgoGraphBfsState;
+ALGODEF AlgoError algoGraphBfsStateIsVertexDiscovered(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsDiscovered);
+ALGODEF AlgoError algoGraphBfsStateIsVertexProcessed(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsProcessed);
+typedef void (*AlgoGraphBfsProcessVertexFunc)(AlgoGraph graph, AlgoGraphBfsState bfsState, int32_t vertexId, void *userData);
+typedef void (*AlgoGraphBfsProcessEdgeFunc)(AlgoGraph graph, AlgoGraphBfsState bfsState, int32_t startVertexId, int32_t endVertexId,
+	void *userData);
+typedef struct AlgoGraphBfsCallbacks
+{
+	AlgoGraphBfsProcessVertexFunc vertexFuncEarly; /** If non-NULL, this function will be called on each vertex when it is first encountered during the traversal. */
+	void *vertexFuncEarlyUserData; /** Passed as userData to vertexFuncEarly. */
+	AlgoGraphBfsProcessEdgeFunc edgeFunc; /** If non-NULL, this function will be called on each edge when it is first encountered during the traversal. For undirected
+	                                          graphs, the function will only be called once per pair of connected vertices. */
+	void *edgeFuncUserData; /** Passed as userData to edgeFunc. */
+	AlgoGraphBfsProcessVertexFunc vertexFuncLate; /**  If non-NULL, this function will be called on each vertex after all of its edges have been explored. */
+	void *vertexFuncLateUserData; /** Passed as userData to vertexFuncLate. */
+} AlgoGraphBfsCallbacks;
 /** @brief Compute the required buffer size to perform a breadth-first search on a graph. 
            This only includes the space required for temporary storage during the search, not the search results themselves. */
 ALGODEF AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph);
@@ -302,17 +316,31 @@ ALGODEF AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph 
 							or invalid vertices will be -1.
 	@param vertexParentCount The outVertexParents[] array must contain at least this many elements. This value should match the
 	                         graph's maximum vertex capacity. If outVertexParents is NULL, this parameter is ignored.
-	@param vertexFuncEarly If non-NULL, this function will be called on each vertex when it is first encountered during the traversal.
-	@param edgeFunc If non-NULL, this function will be called on each edge when it is first encountered during the traversal. For undirected
-	                graphs, the function will only be called once per pair of connected vertices.
-	@param vertexFuncLate If non-NULL, this function will be called on each vertex after all of its edges have been explored.
+	@param callbacks Callback functions to invoke during various stages of the BFS.
 	@param buffer Used for temporary storage during the search.
 	@param bufferSize Size of the buffer[] array, in bytes. Given by algoGraphBfsBufferSize().
 	*/
 ALGODEF AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
-	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
-	void *buffer, size_t bufferSize);
+	AlgoGraphBfsCallbacks callbacks, void *buffer, size_t bufferSize);
 
+typedef struct AlgoGraphDfsStateImpl *AlgoGraphDfsState;
+ALGODEF AlgoError algoGraphDfsStateIsVertexDiscovered(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsDiscovered);
+ALGODEF AlgoError algoGraphDfsStateIsVertexProcessed(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsProcessed);
+ALGODEF AlgoError algoGraphDfsStateGetVertexEntryTime(const AlgoGraphDfsState dfsState, int32_t vertexId, int32_t *outEntryTime);
+ALGODEF AlgoError algoGraphDfsStateGetVertexExitTime(const AlgoGraphDfsState dfsState, int32_t vertexId, int32_t *outExitTime);
+typedef void (*AlgoGraphDfsProcessVertexFunc)(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t vertexId, void *userData);
+typedef void (*AlgoGraphDfsProcessEdgeFunc)(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t startVertexId, int32_t endVertexId,
+	void *userData);
+typedef struct AlgoGraphDfsCallbacks
+{
+	AlgoGraphDfsProcessVertexFunc vertexFuncEarly; /** If non-NULL, this function will be called on each vertex when it is first encountered during the traversal. */
+	void *vertexFuncEarlyUserData; /** Passed as userData to vertexFuncEarly. */
+	AlgoGraphDfsProcessEdgeFunc edgeFunc; /** If non-NULL, this function will be called on each edge when it is first encountered during the traversal. For undirected
+	                                          graphs, the function will only be called once per pair of connected vertices. */
+	void *edgeFuncUserData; /** Passed as userData to edgeFunc. */
+	AlgoGraphDfsProcessVertexFunc vertexFuncLate; /**  If non-NULL, this function will be called on each vertex after all of its edges have been explored. */
+	void *vertexFuncLateUserData; /** Passed as userData to vertexFuncLate. */
+} AlgoGraphDfsCallbacks;
 /** @brief Compute the required buffer size to perform a depth-first search on a graph. 
            This only includes the space required for temporary storage during the search, not the search results themselves. */
 ALGODEF AlgoError algoGraphDfsBufferSize(size_t *outBufferSize, const AlgoGraph graph);
@@ -324,16 +352,12 @@ ALGODEF AlgoError algoGraphDfsBufferSize(size_t *outBufferSize, const AlgoGraph 
 							or invalid vertices will be -1. For DFS, this array must not be NULL.
 	@param vertexParentCount The outVertexParents[] array must contain at least this many elements. This value should match the
 	                         graph's maximum vertex capacity. If outVertexParents is NULL, this parameter is ignored.
-	@param vertexFuncEarly If non-NULL, this function will be called on each vertex when it is first encountered during the traversal.
-	@param edgeFunc If non-NULL, this function will be called on each edge when it is first encountered during the traversal. For undirected
-	                graphs, the function will only be called once per pair of connected vertices.
-	@param vertexFuncLate If non-NULL, this function will be called on each vertex after all of its edges have been explored.
+	@param callbacks Callback functions to invoke during various stages of the DFS.
 	@param buffer Used for temporary storage during the search.
 	@param bufferSize Size of the buffer[] array, in bytes. Given by algoGraphBfsBufferSize().
 	*/
 ALGODEF AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
-	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
-	void *buffer, size_t bufferSize);
+	AlgoGraphDfsCallbacks callbacks, void *buffer, size_t bufferSize);
 
 #ifdef __cplusplus
 }
@@ -1554,6 +1578,35 @@ ALGO_INTERNAL ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity,
 	return ( bits[index/32] & (1<<(index%32)) ) ? 1 : 0;
 }
 
+typedef struct AlgoGraphBfsStateImpl
+{
+	AlgoGraphImpl *graph;
+	int32_t *isVertexDiscovered;
+	int32_t *isVertexProcessed;
+	AlgoQueueImpl *vertexQueue;
+} AlgoGraphBfsStateImpl;
+AlgoError algoGraphBfsStateIsVertexDiscovered(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsDiscovered)
+{
+	if (NULL == bfsState ||
+		NULL == outIsDiscovered ||
+		vertexId < 0 || vertexId >= bfsState->graph->vertexCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outIsDiscovered = iTestBit(bfsState->isVertexDiscovered, bfsState->graph->vertexCapacity, vertexId);
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphBfsStateIsVertexProcessed(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsProcessed)
+{
+	if (NULL == bfsState ||
+		NULL == outIsProcessed ||
+		vertexId < 0 || vertexId >= bfsState->graph->vertexCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outIsProcessed = iTestBit(bfsState->isVertexProcessed, bfsState->graph->vertexCapacity, vertexId);
+	return kAlgoErrorNone;
+}
 AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph)
 {
 	if (NULL == outBufferSize ||
@@ -1571,16 +1624,16 @@ AlgoError algoGraphBfsBufferSize(size_t *outBufferSize, const AlgoGraph graph)
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	*outBufferSize = discoveredSize + processedSize + queueSize;
+	*outBufferSize = sizeof(AlgoGraphBfsStateImpl) + discoveredSize + processedSize + queueSize;
 	return kAlgoErrorNone;
 }
 
 AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
-	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
-	void *buffer, size_t bufferSize)
+	AlgoGraphBfsCallbacks callbacks, void *buffer, size_t bufferSize)
 {
 	size_t minBufferSize = 0;
 	AlgoError err;
+	AlgoGraphBfsStateImpl *bfsState = NULL;
 	uint8_t *bufferNext = (uint8_t*)buffer;
 	if (NULL == graph ||
 		(NULL != outVertexParents && vertexParentCount < (size_t)graph->vertexCapacity) ||
@@ -1600,6 +1653,9 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t) / 32;
 	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
 	size_t queueSize              = 0;
+
+	bfsState = (AlgoGraphBfsStateImpl *)bufferNext;
+	bufferNext += sizeof(AlgoGraphBfsStateImpl);
 
 	int32_t *discovered = (int32_t*)bufferNext;
 	bufferNext += discoveredSize;
@@ -1621,6 +1677,10 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	bufferNext += queueSize;
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBfsBufferSize() is out of date */
+	bfsState->graph = graph;
+	bfsState->isVertexDiscovered = discovered;
+	bfsState->isVertexProcessed = processed;
+	bfsState->vertexQueue = vertexQueue;
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
@@ -1641,8 +1701,8 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 		err = algoQueueRemove(vertexQueue, &queueElem);
 		v0 = queueElem.asInt;
 		ALGO_ASSERT( 1 == iGraphIsValidVertexId(graph, v0) );
-		if (NULL != vertexFuncEarly)
-			vertexFuncEarly(graph, v0);
+		if (NULL != callbacks.vertexFuncEarly)
+			callbacks.vertexFuncEarly(graph, bfsState, v0, callbacks.vertexFuncEarlyUserData);
 		ALGO_ASSERT(0 == iTestBit(processed, vertexCapacityRounded, v0));
 		iSetBit(processed, vertexCapacityRounded, v0); /* must be set here to prevent undirected edges from looping infinitely. */
 		/* Explore v0's edges. */
@@ -1657,8 +1717,8 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			if (0 == iTestBit(processed, vertexCapacityRounded, v1) ||
 				graph->edgeMode == kAlgoGraphEdgeDirected)
 			{
-				if (NULL != edgeFunc)
-					edgeFunc(graph, v0, v1);
+				if (NULL != callbacks.edgeFunc)
+					callbacks.edgeFunc(graph, bfsState, v0, v1, callbacks.edgeFuncUserData);
 			}
 			/* Enqueue v1, if we haven't seen it before. */
 			if (0 == iTestBit(discovered, vertexCapacityRounded, v1))
@@ -1675,11 +1735,67 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 		}
 		ALGO_ASSERT(edgeCount == graph->vertexDegrees[v0]);
 		/* Run the late vertex function after all edges are processed. */
-		if (NULL != vertexFuncLate)
-			vertexFuncLate(graph, v0);
+		if (NULL != callbacks.vertexFuncLate)
+			callbacks.vertexFuncLate(graph, bfsState, v0, callbacks.vertexFuncLateUserData);
 		err = algoQueueCurrentSize(vertexQueue, &currentQueueSize);
 	}
 	while (currentQueueSize > 0);
+	return kAlgoErrorNone;
+}
+
+typedef struct AlgoGraphDfsStateImpl
+{
+	AlgoGraphImpl *graph;
+	int32_t *isVertexDiscovered;
+	int32_t *isVertexProcessed;
+	int32_t *vertexEntryTime;
+	int32_t *vertexExitTime;
+	AlgoGraphEdge **vertexNextEdge;
+	AlgoStack vertexStack;
+	int32_t currentTime;
+} AlgoGraphDfsStateImpl;
+AlgoError algoGraphDfsStateIsVertexDiscovered(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsDiscovered)
+{
+	if (NULL == dfsState ||
+		NULL == outIsDiscovered ||
+		vertexId < 0 || vertexId >= dfsState->graph->vertexCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outIsDiscovered = iTestBit(dfsState->isVertexDiscovered, dfsState->graph->vertexCapacity, vertexId);
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphDfsStateIsVertexProcessed(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsProcessed)
+{
+	if (NULL == dfsState ||
+		NULL == outIsProcessed ||
+		vertexId < 0 || vertexId >= dfsState->graph->vertexCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outIsProcessed = iTestBit(dfsState->isVertexProcessed, dfsState->graph->vertexCapacity, vertexId);
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphDfsStateGetVertexEntryTime(const AlgoGraphDfsState dfsState, int32_t vertexId, int32_t *outEntryTime)
+{
+	if (NULL == dfsState ||
+		NULL == outEntryTime ||
+		vertexId < 0 || vertexId >= dfsState->graph->vertexCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outEntryTime = dfsState->vertexEntryTime[vertexId];
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphDfsStateGetVertexExitTime(const AlgoGraphDfsState dfsState, int32_t vertexId, int32_t *outExitTime)
+{
+	if (NULL == dfsState ||
+		NULL == outExitTime ||
+		vertexId < 0 || vertexId >= dfsState->graph->vertexCapacity)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outExitTime = dfsState->vertexExitTime[vertexId];
 	return kAlgoErrorNone;
 }
 
@@ -1693,16 +1809,19 @@ AlgoError algoGraphDfsBufferSize(size_t *outBufferSize, const AlgoGraph graph)
 	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
 	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t)  / 32;
 	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
+	size_t entryTimeSize          = graph->vertexCapacity * sizeof(int32_t);
+	size_t exitTimeSize           = graph->vertexCapacity * sizeof(int32_t);
 	size_t nextEdgeSize           = graph->vertexCapacity * sizeof(AlgoGraphEdge*);
 	size_t stackSize = 0;
 	algoStackBufferSize(&stackSize, graph->vertexCapacity);
-	*outBufferSize = discoveredSize + processedSize + nextEdgeSize + stackSize;
+	*outBufferSize = sizeof(AlgoGraphDfsStateImpl) + discoveredSize + processedSize
+		+ entryTimeSize + exitTimeSize + nextEdgeSize + stackSize;
 	return kAlgoErrorNone;
 }
 AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
-	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
-	void *buffer, size_t bufferSize)
+	AlgoGraphDfsCallbacks callbacks, void *buffer, size_t bufferSize)
 {
+	AlgoGraphDfsStateImpl *dfsState;
 	size_t minBufferSize = 0;
 	AlgoError err;
 	uint8_t *bufferNext = (uint8_t*)buffer;
@@ -1724,14 +1843,25 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
 	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t)  / 32;
 	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
+	size_t entryTimeSize          = graph->vertexCapacity * sizeof(int32_t);
+	size_t exitTimeSize           = graph->vertexCapacity * sizeof(int32_t);
 	size_t nextEdgeSize           = graph->vertexCapacity * sizeof(AlgoGraphEdge*);
 	size_t stackSize              = 0;
+
+	dfsState = (AlgoGraphDfsStateImpl *)bufferNext;
+	bufferNext += sizeof(AlgoGraphDfsStateImpl);
 
 	int32_t *discovered = (int32_t*)bufferNext;
 	bufferNext += discoveredSize;
 
 	int32_t *processed = (int32_t*)bufferNext;
 	bufferNext += processedSize;
+
+	int32_t *entryTime = (int32_t*)bufferNext;
+	bufferNext += entryTimeSize;
+
+	int32_t *exitTime = (int32_t*)bufferNext;
+	bufferNext += exitTimeSize;
 
 	AlgoGraphEdge **vertexNextEdge = (AlgoGraphEdge**)bufferNext;
 	bufferNext += nextEdgeSize;
@@ -1742,10 +1872,23 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	bufferNext += stackSize;
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphDfsBufferSize() is out of date */
+	dfsState->graph              = graph;
+	dfsState->isVertexDiscovered = discovered;
+	dfsState->isVertexProcessed  = processed;
+	dfsState->vertexEntryTime    = entryTime;
+	dfsState->vertexExitTime     = entryTime;
+	dfsState->vertexNextEdge     = vertexNextEdge;
+	dfsState->vertexStack        = vertexStack;
+	dfsState->currentTime        = 0;
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
-	ALGO_MEMSET(outVertexParents, 0xFF, vertexParentCount*sizeof(int32_t));
+	ALGO_MEMSET(entryTime, 0, entryTimeSize);
+	ALGO_MEMSET(exitTime,  0, exitTimeSize);
+	for(int iVertex=0; iVertex<vertexParentCount; ++iVertex)
+	{
+		outVertexParents[iVertex] = -1;
+	}
 	ALGO_MEMCPY(vertexNextEdge, graph->vertexEdges, nextEdgeSize);
 	algoStackPush(vertexStack, algoDataFromInt(rootVertexId));
 	int32_t currentStackSize = -1;
@@ -1760,8 +1903,10 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 		{
 			/* discovered! */
 			iSetBit(discovered, graph->vertexCapacity, v0);
-			if (NULL != vertexFuncEarly)
-				vertexFuncEarly(graph, v0);
+			dfsState->currentTime += 1;
+			entryTime[v0] = dfsState->currentTime;
+			if (NULL != callbacks.vertexFuncEarly)
+				callbacks.vertexFuncEarly(graph, dfsState, v0, callbacks.vertexFuncEarlyUserData);
 		}
 		if (NULL != vertexNextEdge[v0])
 		{
@@ -1772,126 +1917,31 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 			{
 				assert(outVertexParents[edge->destVertex] < 0);
 				outVertexParents[edge->destVertex] = v0;
-				if (NULL != edgeFunc)
-					edgeFunc(graph, v0, edge->destVertex);
+				if (NULL != callbacks.edgeFunc)
+					callbacks.edgeFunc(graph, dfsState, v0, edge->destVertex, callbacks.edgeFuncUserData);
 				algoStackPush(vertexStack, algoDataFromInt(edge->destVertex));
 			}
 			else if ((0 == iTestBit(processed, graph->vertexCapacity, edge->destVertex) && outVertexParents[v0] != edge->destVertex) ||
 					 kAlgoGraphEdgeDirected == graph->edgeMode)
 			{
-				if (NULL != edgeFunc)
-					edgeFunc(graph, v0, edge->destVertex);
+				if (NULL != callbacks.edgeFunc)
+					callbacks.edgeFunc(graph, dfsState, v0, edge->destVertex, callbacks.edgeFuncUserData);
 			}
 		}
 		else
 		{
-			/* v0 no more edges to visit; it is now fully processed. */
-			assert( 0 == iTestBit(processed, graph->vertexCapacity, v0) );
+			/* v0 has no more edges to visit; it is now fully processed. */
+			if (NULL != callbacks.vertexFuncLate)
+				callbacks.vertexFuncLate(graph, dfsState, v0, callbacks.vertexFuncLateUserData);
+			ALGO_ASSERT( 0 == iTestBit(processed, graph->vertexCapacity, v0) );
+			dfsState->currentTime += 1;
+			exitTime[v0] = dfsState->currentTime;
 			iSetBit(processed, graph->vertexCapacity, v0);
-			if (NULL != vertexFuncLate)
-				vertexFuncLate(graph, v0);
 		}
 		algoStackCurrentSize(vertexStack, &currentStackSize);
 	}
 
 	return kAlgoErrorNone;
 }
-
-AlgoError algoGraphDfsBufferSizeOld(size_t *outBufferSize, const AlgoGraph graph)
-{
-	if (NULL == outBufferSize ||
-		NULL == graph)
-	{
-		return kAlgoErrorInvalidArgument;
-	}
-	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
-	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t)  / 32;
-	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
-	*outBufferSize = discoveredSize + processedSize;
-	return kAlgoErrorNone;
-}
-
-ALGO_INTERNAL void iGraphDfs(const AlgoGraph graph, int32_t v0, int32_t outVertexParents[],
-	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
-	int32_t discovered[], int32_t processed[])
-{
-	AlgoGraphEdge *e = NULL;
-	int32_t edgeCount = 0;
-	ALGO_ASSERT(0 == iTestBit(discovered, graph->vertexCapacity, v0));
-	iSetBit(discovered, graph->vertexCapacity, v0);
-	if (NULL != vertexFuncEarly)
-		vertexFuncEarly(graph, v0);
-	e = graph->vertexEdges[v0];
-	while(NULL != e)
-	{
-		edgeCount += 1;
-		ALGO_ASSERT(edgeCount <= graph->vertexDegrees[v0]);
-		int32_t v1 = e->destVertex;
-		ALGO_ASSERT( 1 == iGraphIsValidVertexId(graph, v1) );
-		if (0 == iTestBit(discovered, graph->vertexCapacity, v1))
-		{
-			if (NULL != outVertexParents)
-				outVertexParents[v1] = v0;
-			if (NULL != edgeFunc)
-				edgeFunc(graph, v0, v1);
-			iGraphDfs(graph, v1, outVertexParents, vertexFuncEarly, edgeFunc, vertexFuncLate, discovered, processed);
-		}
-		else if ( (0 == iTestBit(processed, graph->vertexCapacity, v1) && outVertexParents[v0] != v1) ||
-				  kAlgoGraphEdgeDirected == graph->edgeMode)
-		{
-			if (NULL != edgeFunc)
-			{
-				edgeFunc(graph, v0, v1);
-			}
-		}
-		e = e->next;
-	}
-	ALGO_ASSERT(edgeCount == graph->vertexDegrees[v0]);
-	if (NULL != vertexFuncLate)
-		vertexFuncLate(graph, v0);
-	ALGO_ASSERT(0 == iTestBit(processed, graph->vertexCapacity, v0));
-	iSetBit(processed, graph->vertexCapacity, v0);
-}
-AlgoError algoGraphDfsOld(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
-	AlgoGraphProcessVertexFunc vertexFuncEarly, AlgoGraphProcessEdgeFunc edgeFunc, AlgoGraphProcessVertexFunc vertexFuncLate,
-	void *buffer, size_t bufferSize)
-{
-	size_t minBufferSize = 0;
-	AlgoError err;
-	uint8_t *bufferNext = (uint8_t*)buffer;
-	if (NULL == graph ||
-		NULL == outVertexParents ||
-		vertexParentCount < (size_t)graph->vertexCapacity ||
-		0 == iGraphIsValidVertexId(graph, rootVertexId))
-	{
-		return kAlgoErrorInvalidArgument;
-	}
-	err = algoGraphDfsBufferSize(&minBufferSize, graph);
-	if (NULL == buffer ||
-		bufferSize < minBufferSize ||
-		kAlgoErrorNone != err)
-	{
-		return kAlgoErrorInvalidArgument;
-	}
-
-	int32_t vertexCapacityRounded = (graph->vertexCapacity+31) & ~31;
-	size_t discoveredSize         = vertexCapacityRounded * sizeof(int32_t)  / 32;
-	size_t processedSize          = vertexCapacityRounded * sizeof(int32_t)  / 32;
-
-	int32_t *discovered = (int32_t*)bufferNext;
-	bufferNext += discoveredSize;
-
-	int32_t *processed = (int32_t*)bufferNext;
-	bufferNext += processedSize;
-
-	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphDfsBufferSize() is out of date */
-
-	ALGO_MEMSET(discovered, 0, discoveredSize);
-	ALGO_MEMSET(processed, 0, processedSize);
-	ALGO_MEMSET(outVertexParents, 0xFF, vertexParentCount*sizeof(int32_t));
-	iGraphDfs(graph, rootVertexId, outVertexParents, vertexFuncEarly, edgeFunc, vertexFuncLate, discovered, processed);
-	return kAlgoErrorNone;
-}
-
 
 #endif /* ALGO_IMPLEMENTATION */
