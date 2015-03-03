@@ -1583,6 +1583,7 @@ typedef struct AlgoGraphBfsStateImpl
 	AlgoGraphImpl *graph;
 	int32_t *isVertexDiscovered;
 	int32_t *isVertexProcessed;
+	int32_t *vertexParents;
 	AlgoQueueImpl *vertexQueue;
 } AlgoGraphBfsStateImpl;
 AlgoError algoGraphBfsStateIsVertexDiscovered(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsDiscovered)
@@ -1677,10 +1678,11 @@ AlgoError algoGraphBfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	bufferNext += queueSize;
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBfsBufferSize() is out of date */
-	bfsState->graph = graph;
+	bfsState->graph              = graph;
 	bfsState->isVertexDiscovered = discovered;
-	bfsState->isVertexProcessed = processed;
-	bfsState->vertexQueue = vertexQueue;
+	bfsState->isVertexProcessed  = processed;
+	bfsState->vertexParents      = outVertexParents;
+	bfsState->vertexQueue        = vertexQueue;
 
 	ALGO_MEMSET(discovered, 0, discoveredSize);
 	ALGO_MEMSET(processed, 0, processedSize);
@@ -1748,6 +1750,7 @@ typedef struct AlgoGraphDfsStateImpl
 	AlgoGraphImpl *graph;
 	int32_t *isVertexDiscovered;
 	int32_t *isVertexProcessed;
+	int32_t *vertexParents;
 	int32_t *vertexEntryTime;
 	int32_t *vertexExitTime;
 	AlgoGraphEdge **vertexNextEdge;
@@ -1875,6 +1878,7 @@ AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outV
 	dfsState->graph              = graph;
 	dfsState->isVertexDiscovered = discovered;
 	dfsState->isVertexProcessed  = processed;
+	dfsState->vertexParents      = outVertexParents;
 	dfsState->vertexEntryTime    = entryTime;
 	dfsState->vertexExitTime     = entryTime;
 	dfsState->vertexNextEdge     = vertexNextEdge;
