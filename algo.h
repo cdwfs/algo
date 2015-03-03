@@ -349,6 +349,7 @@ ALGODEF AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int3
 #include <stdlib.h>
 #include <string.h>
 
+#define ALGO_UNUSED(x) (void)(x)
 #define ALGO_INTERNAL static
 
 /******************************************
@@ -421,7 +422,7 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 		}
 		*(int32_t*)elem = -1;
 		ALGO_ASSERT(elem + elementSize == end);
-		(void)end;
+		ALGO_UNUSED(end);
 	}
 	return kAlgoErrorNone;
 }
@@ -964,7 +965,7 @@ AlgoError algoHeapValidate(const AlgoHeap heap)
 		return kAlgoErrorNone; /* Empty heaps are valid. */
 	}
 	/* This is mainly here to prevent warnings about an unused function. */
-	(void)iHeapIsNodeValid(heap, kAlgoHeapRootIndex);
+	ALGO_UNUSED(iHeapIsNodeValid(heap, kAlgoHeapRootIndex));
 
 	/* Recursively test all nodes to verify the heap condition holds. */
 	for(iNode=kAlgoHeapRootIndex+1; iNode<heap->nextEmpty; ++iNode)
@@ -1511,25 +1512,25 @@ AlgoError algoGraphRemoveEdge(AlgoGraph graph, int32_t srcVertexId, int32_t dest
 ALGO_INTERNAL ALGO_INLINE void iSetBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
-	(void)capacity;
+	ALGO_UNUSED(capacity);
 	bits[index/32] |= 1<<(index%32);
 }
 ALGO_INTERNAL ALGO_INLINE void iClearBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
-	(void)capacity;
+	ALGO_UNUSED(capacity);
 	bits[index/32] &= ~(1<<(index%32));
 }
 ALGO_INTERNAL ALGO_INLINE void iFlipBit(int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
-	(void)capacity;
+	ALGO_UNUSED(capacity);
 	bits[index/32] ^= 1<<(index%32);
 }
 ALGO_INTERNAL ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity, int32_t index)
 {
 	ALGO_ASSERT(index >= 0 && (size_t)index < capacity);
-	(void)capacity;
+	ALGO_UNUSED(capacity);
 	return ( bits[index/32] & (1<<(index%32)) ) ? 1 : 0;
 }
 
