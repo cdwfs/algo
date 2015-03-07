@@ -66,8 +66,8 @@ typedef enum AlgoError
  */
 typedef union AlgoData
 {
-	int32_t asInt; /**< The data value as a signed integer. */
-	float asFloat; /**< The data value as a single-precision float. */
+	int32_t asInt; /**< The data value as a signed 32-bit integer. */
+	float asFloat; /**< The data value as a 32-bit single-precision IEEE float. */
 	void *asPtr;   /**< The data value as a void pointer. */
 } AlgoData;
 /** @brief Convenience function to wrap a signed integer as an AlgoData object. */
@@ -351,10 +351,10 @@ ALGODEF AlgoError algoGraphDfsBufferSize(size_t *outBufferSize, const AlgoGraph 
 	                        maximum vertex capacity. The parent of the root vertex, vertices not connected to the root vertex,
 							or invalid vertices will be -1. For DFS, this array must not be NULL.
 	@param vertexParentCount The outVertexParents[] array must contain at least this many elements. This value should match the
-	                         graph's maximum vertex capacity. If outVertexParents is NULL, this parameter is ignored.
+	                         graph's maximum vertex capacity.
 	@param callbacks Callback functions to invoke during various stages of the DFS.
 	@param buffer Used for temporary storage during the search.
-	@param bufferSize Size of the buffer[] array, in bytes. Given by algoGraphBfsBufferSize().
+	@param bufferSize Size of the buffer[] array, in bytes. Given by algoGraphDfsBufferSize().
 	*/
 ALGODEF AlgoError algoGraphDfs(const AlgoGraph graph, int32_t rootVertexId, int32_t outVertexParents[], size_t vertexParentCount, 
 	AlgoGraphDfsCallbacks callbacks, void *buffer, size_t bufferSize);
