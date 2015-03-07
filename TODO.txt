@@ -1,0 +1,56 @@
+FEATURES:
+-	Unweighted Graph:
+	-	Topological Sort
+	-	Shortest Path
+-	Weighted Graph:
+	-	Shortest Path
+-	Simulated Annealing
+
+API CHANGES:
+-	Graph BFS/DFS should take State objects as parameters. Otherwise, algorithms that require iterated DFS
+	(e.g. topo sort) are impossible; discovered/processed arrays are reset from search to search.
+		May as well move vertex parents into the state objects.
+-	Add an array of valid vertex IDs to graphs?
+	Current problem: Impossible to iterate over existing vertices; must iterate over full vertex capacity.
+	Keeping an unsorted list would make this possible.
+	Maintaining the list would be O(1).
+	Adds another 4 bytes per vertex to memory requirements.
+	Traversal could potentially thrash the cache; could provide a function to compact & optimize.
+-	AlgoError algoFoo(int x, int y, int *outZ)
+	-	ALGO_VALIDATE works!
+	-	calling code can be cumbersome
+	int algoFoo(int x, int y, AlgoError *outError)
+	int algoFoo(AlgoError *outError, int x, int y)
+	-	no ALGO_VALIDATE
+	-	Extra unused parameter on the stack, and in calling code (unless I go full-on macro hell)
+-	AlgoData 32-bit/64-bit weirdness
+	#define AlgoData intptr_t -- guaranteed to be the right size on all platforms
+	-	AlgoDataFromPtr:	easy
+	-	AlgoDataFromInt:	easy
+	-	AlgoDataFromFloat:	
+	Make it 64 bit everywhere?
+	-	Endianness issues?
+-	Replace internal pointers with offsets
+	PROs:
+		Objects can be trivially serialized, relocated
+		resizing gets easier
+	CONs:
+		Every pointer access gets an extra addition
+		Can't return pointers into containers (or just document that resizing/relocating will invalidate them)
+-	Resizeable objects?
+	Requires storing old buffer size
+	Some objects way easier than others
+	Requires pointer -> offset conversion, or patch-on-resize. Much easier with offsets, though:
+		grow is relocate -> resize; shrink is resize -> relocate.
+	Use user-provided realloc() callback? Otherwise a user who WANTS to realloc to grow in-place can't.
+	AlgoError algoFooResize(AlgoFoo oldFoo, AlgoFoo *newFoo, void *newBuffer, void *newBufferSize, ...)
+		newSize = oldSize, newBuffer == oldBuffer:	no-op
+		newSize = oldSize, non-overlapping:			memcpy
+		newSize = oldSize, overlapping:				memmove (error?)
+		newSize < oldSize, newBuffer = oldBuffer	in-place shrink
+		newSize < oldSize, non-overlapping:			out-of-place shrink
+		newSize < oldSize, overlapping:				ERROR
+		newSize > oldSize, newBuffer = oldBuffer	in-place grow
+		newSize > oldSize, non-overlapping:			out-of-place grow
+		newSize > oldSize, overlapping:				ERROR
+		
