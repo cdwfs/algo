@@ -479,9 +479,9 @@ AlgoError algoAllocPoolElementSize(AlgoAllocPool allocPool, int32_t *outElementS
 
 typedef struct AlgoStackImpl
 {
-	AlgoData *nodes;
 	int32_t capacity; /* Outside view of how many elements can be stored in the stack. Size of the nodes[] array. */
 	int32_t top; /* index of next empty element in the stack. top=0 -> empty stack. top=capacity -> full */
+	AlgoData *nodes;
 } AlgoStackImpl;
 
 ALGO_INTERNAL int iStackIsEmpty(const AlgoStack stack)
@@ -530,11 +530,14 @@ AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buff
 	*outStack = (AlgoStackImpl*)bufferNext;
 	bufferNext += sizeof(AlgoStackImpl);
 
-	(*outStack)->capacity = stackCapacity;
-	(*outStack)->nodes = (AlgoData*)bufferNext;
-	bufferNext += (*outStack)->capacity * sizeof(AlgoData);
-	(*outStack)->top = 0;
+	void *nodes = bufferNext;
+	bufferNext += stackCapacity * sizeof(AlgoData);
+
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoStackBufferSize() is out of date. */
+	(*outStack)->capacity = stackCapacity;
+	(*outStack)->top = 0;
+	(*outStack)->nodes = nodes;
+
 	return kAlgoErrorNone;
 }
 
