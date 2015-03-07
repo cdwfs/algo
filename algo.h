@@ -1451,8 +1451,17 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 	{
 		return kAlgoErrorInvalidArgument;
 	}
-	/* TODO: debug code to check that a src->dest edge doesn't already exist */
+
 	{
+		/* check that a src->dest edge doesn't already exist; return immediately if so. */
+		for(AlgoGraphEdge *edge = graph->vertexEdges[srcVertexId];
+			edge != NULL;
+			edge = edge->next)
+		{
+			if (edge->destVertex == destVertexId)
+				return kAlgoErrorNone;
+		}
+
 		AlgoGraphEdge *newEdge = NULL;
 		AlgoError err = algoAllocPoolAlloc(graph->edgePool, (void**)&newEdge);
 		if (err != kAlgoErrorNone)
@@ -1468,7 +1477,15 @@ AlgoError algoGraphAddEdge(AlgoGraph graph, int32_t srcVertexId, int32_t destVer
 
 	if (graph->edgeMode == kAlgoGraphEdgeUndirected)
 	{
-		/* TODO: debug code to check that a dest->src edge doesn't already exist */
+		/* check that a dest->src edge doesn't already exist; return immediately if so. */
+		for(AlgoGraphEdge *edge = graph->vertexEdges[destVertexId];
+			edge != NULL;
+			edge = edge->next)
+		{
+			if (edge->destVertex == srcVertexId)
+				return kAlgoErrorNone;
+		}
+
 		/* Add a second edge in the opposite direction */
 		AlgoGraphEdge *newEdge = NULL;
 		AlgoError err = algoAllocPoolAlloc(graph->edgePool, (void**)&newEdge);
