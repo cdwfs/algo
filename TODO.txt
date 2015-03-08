@@ -9,7 +9,9 @@ FEATURES:
 API CHANGES:
 -	Graph BFS/DFS should take State objects as parameters. Otherwise, algorithms that require iterated DFS
 	(e.g. topo sort) are impossible; discovered/processed arrays are reset from search to search.
-		May as well move vertex parents into the state objects.
+	-	May as well move vertex parents into the state objects.
+	-	Add a dirty counter to the graph, incremented whenever it changes. Copy dirty counter when state is created.
+		Check that counters match in Bfs/Dfs functions.
 -	Add an array of valid vertex IDs to graphs?
 	Current problem: Impossible to iterate over existing vertices; must iterate over full vertex capacity.
 	Keeping an unsorted list would make this possible.
