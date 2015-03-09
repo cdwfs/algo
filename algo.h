@@ -351,6 +351,22 @@ typedef struct AlgoGraphDfsCallbacks
 	*/
 ALGODEF AlgoError algoGraphDfs(const AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t rootVertexId, AlgoGraphDfsCallbacks callbacks);
 
+/** @brief Compute the required buffer size to perform a topological sort on a graph. 
+           This only includes the space required for temporary storage during the sort, not the sort results themselves. */
+ALGODEF AlgoError algoGraphTopoSortBufferSize(size_t *outBufferSize, const AlgoGraph graph);
+/** @brief Perform a topological sort on a graph.
+	@param graph The graph to sort. It must be a directed acyclic graph (DAG) -- that is, its edgeMode must be kGraphEdgeModeDirected,
+	             and it must not contain any cycles.
+	@param outSortedVertices A list of sorted vertex IDs will be written to this array.
+	@param sortedVertexCount The outSortedVertices[] array must contain at least this many elements. This value should match the
+	                         graph's current vertex count.
+	@param buffer Used for temporary storage during the sort.
+	@param bufferSize Size of the buffer[] array, in bytes. Given by algoGraphTopoSortBufferSize().
+	*/
+ALGODEF AlgoError algoGraphTopoSort(const AlgoGraph graph, int32_t outSortedVertices[], size_t sortedVertexCount, 
+	void *buffer, size_t bufferSize);
+	
+
 #ifdef __cplusplus
 }
 #endif
@@ -1982,6 +1998,145 @@ AlgoError algoGraphDfs(const AlgoGraph graph, AlgoGraphDfsState dfsState, int32_
 			iSetBit(dfsState->isVertexProcessed, graph->vertexCapacity, v0);
 		}
 		algoStackCurrentSize(dfsState->vertexStack, &currentStackSize);
+	}
+
+	return kAlgoErrorNone;
+}
+
+typedef enum IGraphEdgeType
+{
+	kGraphEdgeTypeTree    = 0,
+	kGraphEdgeTypeBack    = 1,
+	kGraphEdgeTypeForward = 2,
+	kGraphEdgeTypeCross   = 3,
+} IGraphEdgeType;
+ALGO_INTERNAL void iGraphTopoSortEdge(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t v0, int32_t v1, void *userData)
+{
+	ALGO_UNUSED(v0);
+	ALGO_UNUSED(userData);
+	/** All we're doing here is making sure there are no BACK edges. I'll leave in the full edge classification
+		in case I need it later.
+		*/
+	IGraphEdgeType edgeType = kGraphEdgeTypeTree;
+#if 0
+	if ( iTestBit(dfsState->isVertexDiscovered, graph->vertexCapacity, v1) && 
+		!iTestBit(dfsState->isVertexProcessed,  graph->vertexCapacity, v1))
+	{
+		edgeType = kGraphEdgeTypeBack;
+	}
+#else
+	if (dfsState->vertexParents[v1] == v0)
+	{
+		edgeType = kGraphEdgeTypeTree;
+	}
+	else if ( iTestBit(dfsState->isVertexDiscovered, graph->vertexCapacity, v1) && 
+			 !iTestBit(dfsState->isVertexProcessed,  graph->vertexCapacity, v1))
+	{
+		edgeType = kGraphEdgeTypeBack;
+	}
+	else if (iTestBit(dfsState->isVertexProcessed, graph->vertexCapacity, v1) &&
+			 dfsState->vertexEntryTime[v1] > dfsState->vertexEntryTime[v0])
+	{
+		edgeType = kGraphEdgeTypeForward;
+	}
+	else if (iTestBit(dfsState->isVertexProcessed, graph->vertexCapacity, v1) &&
+			 dfsState->vertexEntryTime[v1] < dfsState->vertexEntryTime[v0])
+	{
+		edgeType = kGraphEdgeTypeCross;
+	}
+	else
+	{
+		ALGO_ASSERT(0); /* unclassified edge from v0 to v1 */
+	}
+#endif
+	ALGO_ASSERT(edgeType != kGraphEdgeTypeBack);
+}
+typedef struct IGraphTopoSortResults
+{
+	int32_t *sortedVertices;
+	int32_t nextFreeIndex; /* Next free index in the sortedVertices array. */
+} IGraphTopoSortResults;
+ALGO_INTERNAL void iGraphTopoSortVertexLate(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t vertexId, void *userData)
+{
+	ALGO_UNUSED(graph);
+	ALGO_UNUSED(dfsState);
+	IGraphTopoSortResults *results = (IGraphTopoSortResults*)userData;
+	ALGO_ASSERT(results->nextFreeIndex >= 0 && results->nextFreeIndex < graph->currentVertexCount);
+	results->sortedVertices[results->nextFreeIndex] = vertexId;
+	results->nextFreeIndex -= 1;
+}
+AlgoError algoGraphTopoSortBufferSize(size_t *outBufferSize, const AlgoGraph graph)
+{
+	AlgoError err;
+	if (NULL == graph ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	size_t dfsStateBufferSize = 0;
+	err = algoGraphDfsStateBufferSize(&dfsStateBufferSize, graph);
+	if (kAlgoErrorNone != err)
+		return err;
+	*outBufferSize = dfsStateBufferSize;
+	return kAlgoErrorNone;
+}
+AlgoError algoGraphTopoSort(const AlgoGraph graph, int32_t outSortedVertices[], size_t sortedVertexCount, 
+	void *buffer, size_t bufferSize)
+{
+	if (NULL == graph ||
+		NULL == outSortedVertices ||
+		sortedVertexCount < graph->currentVertexCount)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	if (kAlgoGraphEdgeUndirected == graph->edgeMode)
+	{
+		return kAlgoErrorOperationFailed;
+	}
+	size_t minBufferSize = 0;
+	AlgoError err;
+	uint8_t *bufferNext = (uint8_t*)buffer;
+	err = algoGraphTopoSortBufferSize(&minBufferSize, graph);
+	if (NULL == buffer ||
+		bufferSize < minBufferSize ||
+		kAlgoErrorNone != err)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	size_t dfsStateBufferSize = 0;
+	err = algoGraphDfsStateBufferSize(&dfsStateBufferSize, graph);
+	void *dfsStateBuffer = bufferNext;
+	bufferNext += dfsStateBufferSize;
+
+	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphTopoSortBufferSize() is out of date */
+	AlgoGraphDfsState dfsState;
+	err = algoGraphDfsStateCreate(&dfsState, graph, dfsStateBuffer, dfsStateBufferSize);
+	if (kAlgoErrorNone != err)
+		return err;
+
+	IGraphTopoSortResults sortResults;
+	sortResults.sortedVertices = outSortedVertices;
+	sortResults.nextFreeIndex = graph->currentVertexCount-1;
+	AlgoGraphDfsCallbacks dfsCallbacks = {
+		NULL, NULL,
+		iGraphTopoSortEdge, NULL,
+		iGraphTopoSortVertexLate, NULL
+	};
+	dfsCallbacks.vertexFuncLateUserData = &sortResults;
+	for(int iVert=0; iVert<graph->vertexCapacity; ++iVert)
+	{
+		int isVertexSorted = 0;
+		err = algoGraphDfsStateIsVertexProcessed(dfsState, iVert, &isVertexSorted);
+		if (iGraphIsValidVertexId(graph, iVert) &&
+			!isVertexSorted)
+		{
+			err = algoGraphDfs(graph, dfsState, iVert, dfsCallbacks);
+			if (kAlgoErrorNone != err)
+				return err;
+			if (sortResults.nextFreeIndex < 0)
+				break;
+		}
 	}
 
 	return kAlgoErrorNone;
