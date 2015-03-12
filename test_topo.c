@@ -1,15 +1,5 @@
 #include "test_common.h"
 
-/** TODO: test topological sort
-	-	randomly generate a graph of N nodes
-	-	randomly create edges between pairs of vertices. Keep a separate list of all edges,
-		since the graph can't do it for you. Actually, hey, maybe do it with a BFS!
-	-	run a topo sort
-	-	for each edge v0->v1, make sure v0 appears earlier in the sorted vertices than v1.
-		-	take one pass over the sorted vertices, and track each vertex's index in the sorted array.
-		-	each edge test is then constant-time
-		-	total time becomes O(V+E) instead of O(EV)
-	*/
 typedef struct GraphEdge
 {
 	int32_t v0, v1;
