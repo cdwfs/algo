@@ -268,18 +268,18 @@ int main(void)
 	startEntry->vertexId = startVertexId;
 	addMovesForState(graph, table, startState);
 
-	size_t dfsBufferSize = 0;
-	ALGO_VALIDATE( algoGraphDfsBufferSize(&dfsBufferSize, graph) );
-	void *dfsBuffer = malloc(dfsBufferSize);
-	int32_t *vertexParents = malloc(kVertexCapacity*sizeof(int32_t));
+	size_t dfsStateBufferSize = 0;
+	ALGO_VALIDATE( algoGraphDfsStateBufferSize(&dfsStateBufferSize, graph) );
+	void *dfsStateBuffer = malloc(dfsStateBufferSize);
+	AlgoGraphDfsState dfsState;
+	ALGO_VALIDATE( algoGraphDfsStateCreate(&dfsState, graph, dfsStateBuffer, dfsStateBufferSize) );
 	AlgoGraphDfsCallbacks dfsCallbacks = {
 		dfsValidateVertex, NULL,
 		NULL, NULL,
 		NULL, NULL
 	};
-	ALGO_VALIDATE( algoGraphDfs(graph, startVertexId, vertexParents, kVertexCapacity,
-		dfsCallbacks, dfsBuffer, dfsBufferSize) );
-	free(dfsBuffer);
+	ALGO_VALIDATE( algoGraphDfs(graph, dfsState, startVertexId, dfsCallbacks) );
+	free(dfsStateBuffer);
 
 #if 0 /* just some quicky hash table analysis */
 	int iBin=0;
