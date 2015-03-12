@@ -31,6 +31,11 @@ set(sources ${exe_name}.c)
 cmp_IDE_SOURCE_PROPERTIES( "\\\\" "${headers}" "${sources}")
 add_executable(${exe_name} ${sources} ${headers})
 
+set(exe_name test_hamming)
+set(sources ${exe_name}.c)
+cmp_IDE_SOURCE_PROPERTIES( "\\\\" "${headers}" "${sources}")
+add_executable(${exe_name} ${sources} ${headers})
+
 set(exe_name test_heap)
 set(sources ${exe_name}.c)
 cmp_IDE_SOURCE_PROPERTIES( "\\\\" "${headers}" "${sources}")
