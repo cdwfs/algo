@@ -1,17 +1,17 @@
 #include "test_common.h"
 #include <math.h>
 
-static const int kMaxWordLength = 6;
+static const int kMaxWordLength = 13;
 
-static int32_t packWordAsInt(const char *word)
+static uint64_t packWordAsInt(const char *word)
 {
 	int len = (int)strlen(word);
 	if (len > kMaxWordLength)
 	{
 		ZOMBO_ERROR("length of word (%s) must be <= %d letters", word, kMaxWordLength);
-		return -1;
+		return 0;
 	}
-	int32_t id = 0;
+	uint64_t id = 0;
 	for(int iChar = len-1;
 		iChar >= 0;
 		iChar -= 1)
@@ -29,6 +29,17 @@ static int32_t wangHash32(int32_t key) /* see https://gist.github.com/badboy/626
   key =  key ^ (key >>  4);
   key =  key * 2057;        /* key = (key + (key << 3)) + (key << 11); */
   key =  key ^ (key >> 16);
+  return key;
+}
+static uint64_t wangHash64(uint64_t key)
+{
+  key = (~key) + (key << 21);               // key = (key << 21) - key - 1;
+  key =   key  ^ (key >> 24);
+  key =  (key  + (key <<  3)) + (key << 8); // key * 265
+  key =   key  ^ (key >> 14);
+  key =  (key  + (key <<  2)) + (key << 4); // key * 21
+  key =   key  ^ (key >> 28);
+  key =   key  + (key << 31);
   return key;
 }
 
@@ -96,7 +107,7 @@ static HashEntry_Word *hashGetEntry_Word(HashTable_Word *table, const char *key)
 {
 	ZOMBO_ASSERT(table, "table must not be NULL");
 	/* hash function: binIndex = f(key) % table->binCount */
-	int binIndex = wangHash32( packWordAsInt(key) ) % table->binCount;
+	int binIndex = wangHash64( packWordAsInt(key) ) % table->binCount;
 	/* end hash function */
 	HashEntry_Word **ppEntry = hashGetEntryRef_Word(table, key, binIndex);
 	return ppEntry ? *ppEntry : NULL;
@@ -105,7 +116,7 @@ static HashEntry_Word *hashAddEntry_Word(HashTable_Word *table, const char *key)
 {
 	ZOMBO_ASSERT(table, "table must not be NULL");
 	/* hash function: binIndex = f(key) % table->binCount */
-	int binIndex = wangHash32( packWordAsInt(key) ) % table->binCount;
+	int binIndex = wangHash64( packWordAsInt(key) ) % table->binCount;
 	/* end hash function */
 	HashEntry_Word **ppEntry = hashGetEntryRef_Word(table, key, binIndex);
 	if (NULL != ppEntry)
@@ -190,7 +201,7 @@ int main(void)
 
 	// Create graph; add word vertices; build wordId->vertexId lookup table
 	size_t hamGraphBufferSize = 0;
-	int32_t expectedEdgeCount = 24847;//wordCount*(26-1)*kMaxWordLength;
+	int32_t expectedEdgeCount = 33383;//wordCount*(26-1)*kMaxWordLength;
 	ALGO_VALIDATE( algoGraphBufferSize(&hamGraphBufferSize, wordCount, expectedEdgeCount, kAlgoGraphEdgeUndirected) );
 	void *hamGraphBuffer = malloc(hamGraphBufferSize);
 	AlgoGraph hamGraph;
@@ -206,7 +217,8 @@ int main(void)
 		ALGO_VALIDATE( algoGraphAddVertex(hamGraph, algoDataFromPtr(hashEntry), &(hashEntry->vertexId)) );
 	}
 
-	// Create edges between words
+	// Create edges between words. Keep track of maximum vertex degree.
+	int32_t maxWordEdgeCount = 0;
 	char *wordCopy = alloca(kMaxWordLength+1);
 	for(char *nextWord = wordData;
 		nextWord < wordDataEnd;
@@ -233,6 +245,10 @@ int main(void)
 				}
 			}
 		}
+		int32_t wordEdgeCount = 0;
+		ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, wordEntry->vertexId, &wordEdgeCount) );
+		if (wordEdgeCount > maxWordEdgeCount)
+			maxWordEdgeCount = wordEdgeCount;
 	}
 	int32_t hamEdgeCount = -1;
 	ALGO_VALIDATE( algoGraphCurrentEdgeCount(hamGraph, &hamEdgeCount) );
@@ -246,6 +262,7 @@ int main(void)
 		return -1;
 	}
 	fprintf(hamFile, "{\n");
+	int32_t *wordEdges = alloca(maxWordEdgeCount*sizeof(int32_t));
 	for(char *nextWord = wordData;
 		nextWord < wordDataEnd;
 		nextWord += strlen(nextWord)+1)
@@ -256,7 +273,6 @@ int main(void)
 		const HashEntry_Word *wordEntry = hashGetEntry_Word(wordHash, nextWord);
 		int32_t wordEdgeCount = 0;
 		ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, wordEntry->vertexId, &wordEdgeCount) );
-		int32_t *wordEdges = alloca(wordEdgeCount*sizeof(int32_t));
 		ALGO_VALIDATE( algoGraphGetVertexEdges(hamGraph, wordEntry->vertexId, wordEdgeCount, wordEdges) );
 		fprintf(hamFile, "\t\"%s\": [", nextWord);
 		for(int32_t iEdge=0;
@@ -274,6 +290,10 @@ int main(void)
 	fclose(hamFile);
 	
 	// shortest-path
+	size_t hamGraphBfsBufferSize = 0;
+	ALGO_VALIDATE( algoGraphBfsStateBufferSize(&hamGraphBfsBufferSize, hamGraph) );
+	void *hamGraphBfsBuffer = malloc(hamGraphBfsBufferSize);
+	AlgoGraphBfsState hamBfs;
 	printf("Ctrl-D + Enter to exit\n\n");
 	for(;;)
 	{
@@ -281,7 +301,10 @@ int main(void)
 		char startWord[32] = {0};
 		scanf_s("%31s", startWord, 32);
 		if (strlen(startWord) > kMaxWordLength)
+		{
+			printf("ERROR: Too long! max word length is %d\n\n", kMaxWordLength);
 			continue;
+		}
 		else if (startWord[0] == 4)
 			break;
 
@@ -289,32 +312,40 @@ int main(void)
 		char goalWord[32] = {0};
 		scanf_s("%31s", goalWord, 32);
 		if (strlen(goalWord) > kMaxWordLength)
+		{
+			printf("ERROR: Too long! max word length is %d\n\n", kMaxWordLength);
 			continue;
+		}
 		else if (goalWord[0] == 4)
 			break;
 
-		size_t hamGraphBfsBufferSize = 0;
-		ALGO_VALIDATE( algoGraphBfsStateBufferSize(&hamGraphBfsBufferSize, hamGraph) );
-		void *hamGraphBfsBuffer = malloc(hamGraphBfsBufferSize);
-		AlgoGraphBfsState hamBfs;
+		HashEntry_Word *startEntry = hashGetEntry_Word(wordHash, startWord);
+		if (!startEntry)
+		{
+			printf("ERROR: '%s' not found in dictionary\n\n", startWord);
+			continue;
+		}
 		ALGO_VALIDATE( algoGraphBfsStateCreate(&hamBfs, hamGraph, hamGraphBfsBuffer, hamGraphBfsBufferSize) );
 		AlgoGraphBfsCallbacks hamBfsCallbacks = {
 			NULL, NULL,
 			NULL, NULL,
 			NULL, NULL,
 		};
-		HashEntry_Word *startEntry = hashGetEntry_Word(wordHash, startWord);
-		if (!startEntry)
-			continue;
 		ALGO_VALIDATE( algoGraphBfs(hamGraph, hamBfs, startEntry->vertexId, hamBfsCallbacks) );
 
 		const HashEntry_Word *goalEntry = hashGetEntry_Word(wordHash, goalWord);
 		if (!goalEntry)
+		{
+			printf("ERROR: '%s' not found in dictionary\n\n", goalWord);
 			continue;
+		}
 		int32_t parentId = -1;
 		ALGO_VALIDATE( algoGraphBfsStateGetVertexParent(hamBfs, goalEntry->vertexId, &parentId) );
 		if (parentId == -1)
+		{
+			printf("ERROR: no valid hamming path found from '%s' to '%s'\n\n", startWord, goalWord);
 			continue;
+		}
 		for(;;)
 		{
 			parentId = -1;
@@ -327,10 +358,10 @@ int main(void)
 			printf("%s ", goalEntry->key);
 		}
 		printf("\n\n");
-		free(hamGraphBfsBuffer);
 	}
 
 	free(wordData);
 	free(hashBuffer);
 	free(hamGraphBuffer);
+	free(hamGraphBfsBuffer);
 }
