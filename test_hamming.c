@@ -58,6 +58,7 @@ typedef struct HashTable_Word
 	int freeEntryIndex;
 	HashEntry_Word **bins;
 	HashEntry_Word *entryPool;
+	HashEntry_Word *recycledEntryList;
 } HashTable_Word;
 static size_t hashBufferSize_Word(int binCount, int entryCapacity)
 {
@@ -87,6 +88,7 @@ static HashTable_Word *hashCreate_Word(void *buffer, size_t bufferSize, int binC
 	outTable->freeEntryIndex = 0;
 	outTable->bins = bins;
 	outTable->entryPool = entryPool;
+	outTable->recycledEntryList = NULL;
 	return outTable;
 }
 static HashEntry_Word **hashGetEntryRef_Word(HashTable_Word *table, const char *key, int binIndex)
@@ -122,8 +124,16 @@ static HashEntry_Word *hashAddEntry_Word(HashTable_Word *table, const char *key)
 	if (NULL != ppEntry)
 		return *ppEntry;
 	ZOMBO_ASSERT(table->freeEntryIndex < table->entryCapacity, "freeEntryIndex (%d) must be in the range [0..%d)", table->freeEntryIndex, table->entryCapacity);
-	HashEntry_Word *newEntry = table->entryPool + table->freeEntryIndex;
-	table->freeEntryIndex += 1;
+	HashEntry_Word *newEntry = table->recycledEntryList;
+	if (newEntry == NULL)
+	{
+		newEntry = table->entryPool + table->freeEntryIndex;
+		table->freeEntryIndex += 1;
+	}
+	else
+	{
+		table->recycledEntryList = newEntry->next;
+	}
 	newEntry->key = key;
 	newEntry->next = table->bins[binIndex];
 	table->bins[binIndex] = newEntry;
@@ -131,6 +141,20 @@ static HashEntry_Word *hashAddEntry_Word(HashTable_Word *table, const char *key)
 	newEntry->vertexId = -1;
 	/* end custom fields */
 	return newEntry;
+}
+static void hashRemoveEntry_Word(HashTable_Word *table, const char *key)
+{
+	ZOMBO_ASSERT(table, "table must not be NULL");
+	/* hash function: binIndex = f(key) % table->binCount */
+	int binIndex = wangHash64( packWordAsInt(key) ) % table->binCount;
+	/* end hash function */
+	HashEntry_Word **ppEntry = hashGetEntryRef_Word(table, key, binIndex);
+	if (NULL == ppEntry)
+		return;
+	HashEntry_Word *doomedEntry = *ppEntry;
+	*ppEntry = doomedEntry->next;
+	doomedEntry->next = table->recycledEntryList;
+	table->recycledEntryList = doomedEntry;
 }
 
 
