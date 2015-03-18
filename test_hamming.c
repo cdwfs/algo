@@ -230,53 +230,76 @@ int main(void)
 	void *hamGraphBuffer = malloc(hamGraphBufferSize);
 	AlgoGraph hamGraph;
 	ALGO_VALIDATE( algoGraphCreate(&hamGraph, wordCount, expectedEdgeCount, kAlgoGraphEdgeUndirected, hamGraphBuffer, hamGraphBufferSize) );
-	for(char *nextWord = wordData;
-		nextWord < wordDataEnd;
-		nextWord += strlen(nextWord)+1)
+	for(int iBin=0;
+		iBin<wordHash->binCount;
+		++iBin)
 	{
-		size_t wordLength = strlen(nextWord);
-		if (wordLength > kMaxWordLength)
-			continue;
-		HashEntry_Word *hashEntry = hashGetEntry_Word(wordHash, nextWord);
-		ALGO_VALIDATE( algoGraphAddVertex(hamGraph, algoDataFromPtr(hashEntry), &(hashEntry->vertexId)) );
+		for(HashEntry_Word *wordEntry = wordHash->bins[iBin];
+			wordEntry;
+			wordEntry = wordEntry->next)
+		{
+			ALGO_VALIDATE( algoGraphAddVertex(hamGraph, algoDataFromPtr(wordEntry), &(wordEntry->vertexId)) );
+		}
 	}
 
 	// Create edges between words. Keep track of maximum vertex degree.
 	int32_t maxWordEdgeCount = 0;
 	char *wordCopy = alloca(kMaxWordLength+1);
-	for(char *nextWord = wordData;
-		nextWord < wordDataEnd;
-		nextWord += strlen(nextWord)+1)
+	wordCopy[kMaxWordLength] = 0;
+	for(int iBin=0;
+		iBin<wordHash->binCount;
+		++iBin)
 	{
-		size_t wordLength = strlen(nextWord);
-		if (wordLength > kMaxWordLength)
-			continue;
-		const HashEntry_Word *wordEntry = hashGetEntry_Word(wordHash, nextWord);
-		for(int iChar=0; iChar<wordLength; ++iChar)
+		for(HashEntry_Word *wordEntry = wordHash->bins[iBin];
+			wordEntry;
+			wordEntry = wordEntry->next)
 		{
-			strncpy_s(wordCopy, wordLength+1, nextWord, wordLength+1);
-			for(char iCandidate=nextWord[iChar]+1;
-				iCandidate<='Z';
-				iCandidate += 1)
+			const char *word = wordEntry->key;
+			size_t wordLength = strlen(word);
+			for(int iChar=0;
+				iChar<wordLength;
+				++iChar)
 			{
-				wordCopy[iChar] = iCandidate;
-				const HashEntry_Word *copyEntry = hashGetEntry_Word(wordHash, wordCopy);
-				if (NULL != copyEntry)
+				strncpy_s(wordCopy, kMaxWordLength+1, word, wordLength+1);
+				/* Each word only looks at candidates that appear lexically later */
+				for(char iCandidate = word[iChar]+1;
+					iCandidate<='Z';
+					iCandidate += 1)
 				{
-					ZOMBO_ASSERT(wordEntry->vertexId >= 0, "%s (%d) has invalid vertex ID", nextWord, wordEntry->vertexId);
-					ZOMBO_ASSERT(copyEntry->vertexId >= 0, "%s (%d) has invalid vertex ID", wordCopy, copyEntry->vertexId);
-					ALGO_VALIDATE( algoGraphAddEdge(hamGraph, wordEntry->vertexId, copyEntry->vertexId) );
+					wordCopy[iChar] = iCandidate;
+					const HashEntry_Word *copyEntry = hashGetEntry_Word(wordHash, wordCopy);
+					if (NULL != copyEntry)
+					{
+						ZOMBO_ASSERT(wordEntry->vertexId >= 0, "%s (%d) has invalid vertex ID", word,     wordEntry->vertexId);
+						ZOMBO_ASSERT(copyEntry->vertexId >= 0, "%s (%d) has invalid vertex ID", wordCopy, copyEntry->vertexId);
+						ALGO_VALIDATE( algoGraphAddEdge(hamGraph, wordEntry->vertexId, copyEntry->vertexId) );
+						int32_t srcEdgeCount = 0, dstEdgeCount = 0;
+						ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, wordEntry->vertexId, &srcEdgeCount) );
+						ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, copyEntry->vertexId, &dstEdgeCount) );
+						if (srcEdgeCount > maxWordEdgeCount)
+						{
+							maxWordEdgeCount = srcEdgeCount;
+						}
+						if (dstEdgeCount > maxWordEdgeCount)
+						{
+							maxWordEdgeCount = dstEdgeCount;
+						}
+					}
 				}
 			}
 		}
-		int32_t wordEdgeCount = 0;
-		ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, wordEntry->vertexId, &wordEdgeCount) );
-		if (wordEdgeCount > maxWordEdgeCount)
-			maxWordEdgeCount = wordEdgeCount;
 	}
 	int32_t hamEdgeCount = -1;
 	ALGO_VALIDATE( algoGraphCurrentEdgeCount(hamGraph, &hamEdgeCount) );
 	ALGO_VALIDATE( algoGraphValidate(hamGraph) );
+
+	{
+		HashEntry_Word *doomedEntry = hashGetEntry_Word(wordHash, "SORER");
+		ALGO_VALIDATE( algoGraphRemoveVertex(hamGraph, doomedEntry->vertexId) );
+		ALGO_VALIDATE( algoGraphValidate(hamGraph) );
+		hashRemoveEntry_Word(wordHash, "SORER");
+		wordCount -=1 ;
+	}
 
 	// Dump graph as JSON
 	FILE *hamFile = zomboFopen("upper-ham.json", "w");
@@ -287,28 +310,34 @@ int main(void)
 	}
 	fprintf(hamFile, "{\n");
 	int32_t *wordEdges = alloca(maxWordEdgeCount*sizeof(int32_t));
-	for(char *nextWord = wordData;
-		nextWord < wordDataEnd;
-		nextWord += strlen(nextWord)+1)
+	for(int iBin=0;
+		iBin<wordHash->binCount;
+		++iBin)
 	{
-		size_t wordLength = strlen(nextWord);
-		if (wordLength > kMaxWordLength)
-			continue;
-		const HashEntry_Word *wordEntry = hashGetEntry_Word(wordHash, nextWord);
-		int32_t wordEdgeCount = 0;
-		ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, wordEntry->vertexId, &wordEdgeCount) );
-		ALGO_VALIDATE( algoGraphGetVertexEdges(hamGraph, wordEntry->vertexId, wordEdgeCount, wordEdges) );
-		fprintf(hamFile, "\t\"%s\": [", nextWord);
-		for(int32_t iEdge=0;
-			iEdge < wordEdgeCount;
-			iEdge += 1)
+		for(HashEntry_Word *wordEntry = wordHash->bins[iBin];
+			wordEntry;
+			wordEntry = wordEntry->next)
 		{
-			AlgoData vertData;
-			ALGO_VALIDATE( algoGraphGetVertexData(hamGraph, wordEdges[iEdge], &vertData) );
-			HashEntry_Word *edgeEntry = vertData.asPtr;
-			fprintf(hamFile, "%s\"%s\"", (iEdge>0) ? ", " : "", edgeEntry->key);
+			const char *word = wordEntry->key;
+			int32_t wordEdgeCount = 0;
+			ALGO_VALIDATE( algoGraphGetVertexDegree(hamGraph, wordEntry->vertexId, &wordEdgeCount) );
+			ZOMBO_ASSERT(wordEdgeCount <= maxWordEdgeCount, "word edge count (%d) exceeds expected maximum (%d)", wordEdgeCount, maxWordEdgeCount);
+			ALGO_VALIDATE( algoGraphGetVertexEdges(hamGraph, wordEntry->vertexId, wordEdgeCount, wordEdges) );
+			fprintf(hamFile, "\t\"%s\": [", word);
+			for(int32_t iEdge=0;
+				iEdge < wordEdgeCount;
+				iEdge += 1)
+			{
+				AlgoData vertData;
+				ALGO_VALIDATE( algoGraphGetVertexData(hamGraph, wordEdges[iEdge], &vertData) );
+				HashEntry_Word *edgeEntry = vertData.asPtr;
+				fprintf(hamFile, "%s\"%s\"", (iEdge>0) ? ", " : "", edgeEntry->key);
+			}
+			/*	TODO: this logic breaks if we remove the last word from the graph/hash table.
+				It should skip the leading comma on the first word, and add it to all the others.
+				*/
+			fprintf(hamFile, "]%s\n", (word+strlen(word)+1 < wordDataEnd) ? "," : "");
 		}
-		fprintf(hamFile, "]%s\n", (nextWord+strlen(nextWord)+1 < wordDataEnd) ? "," : "");
 	}
 	fprintf(hamFile, "}\n");
 	fclose(hamFile);
@@ -384,8 +413,8 @@ int main(void)
 		printf("\n\n");
 	}
 
-	free(wordData);
-	free(hashBuffer);
-	free(hamGraphBuffer);
 	free(hamGraphBfsBuffer);
+	free(hamGraphBuffer);
+	free(hashBuffer);
+	free(wordData);
 }
