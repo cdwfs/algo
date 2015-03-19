@@ -356,28 +356,48 @@ int main(void)
 		if (strlen(startWord) > kMaxWordLength)
 		{
 			printf("ERROR: Too long! max word length is %d\n\n", kMaxWordLength);
+			int c;
+			while((c = getchar()) != '\n' && c != EOF)
+			{
+				/* discard remainder of input */
+			}
 			continue;
 		}
 		else if (startWord[0] == 4)
 			break;
 
-		printf("goal: ");
+		printf(" goal: ");
 		char goalWord[32] = {0};
 		scanf_s("%31s", goalWord, 32);
 		if (strlen(goalWord) > kMaxWordLength)
 		{
 			printf("ERROR: Too long! max word length is %d\n\n", kMaxWordLength);
+			int c;
+			while((c = getchar()) != '\n' && c != EOF)
+			{
+				/* discard remainder of input */
+			}
 			continue;
 		}
 		else if (goalWord[0] == 4)
 			break;
 
-		HashEntry_Word *startEntry = hashGetEntry_Word(wordHash, startWord);
+		/*	Results are printed in reverse order (from goal to start), so we'll actually search from goal to start to
+			get it to come out correctly.
+			*/
+		HashEntry_Word *startEntry = hashGetEntry_Word(wordHash, goalWord);
 		if (!startEntry)
+		{
+			printf("ERROR: '%s' not found in dictionary\n\n", goalWord);
+			continue;
+		}
+		const HashEntry_Word *goalEntry = hashGetEntry_Word(wordHash, startWord);
+		if (!goalEntry)
 		{
 			printf("ERROR: '%s' not found in dictionary\n\n", startWord);
 			continue;
 		}
+
 		ALGO_VALIDATE( algoGraphBfsStateCreate(&hamBfs, hamGraph, hamGraphBfsBuffer, hamGraphBfsBufferSize) );
 		AlgoGraphBfsCallbacks hamBfsCallbacks = {
 			NULL, NULL,
@@ -385,13 +405,6 @@ int main(void)
 			NULL, NULL,
 		};
 		ALGO_VALIDATE( algoGraphBfs(hamGraph, hamBfs, startEntry->vertexId, hamBfsCallbacks) );
-
-		const HashEntry_Word *goalEntry = hashGetEntry_Word(wordHash, goalWord);
-		if (!goalEntry)
-		{
-			printf("ERROR: '%s' not found in dictionary\n\n", goalWord);
-			continue;
-		}
 		int32_t parentId = -1;
 		ALGO_VALIDATE( algoGraphBfsStateGetVertexParent(hamBfs, goalEntry->vertexId, &parentId) );
 		if (parentId == -1)
@@ -399,6 +412,7 @@ int main(void)
 			printf("ERROR: no valid hamming path found from '%s' to '%s'\n\n", startWord, goalWord);
 			continue;
 		}
+		printf("%s ", goalEntry->key);
 		for(;;)
 		{
 			parentId = -1;
