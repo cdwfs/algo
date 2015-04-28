@@ -269,7 +269,7 @@ ALGODEF AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32
 /** @brief Remove an existing vertex from a graph. This will implicitly remove any edges connecting this
            vertex to the rest of the graph.
 	@note  For undirected graphs, this operations runs in O(1) time (expected), approaching O(Ecurrent) in pathological cases.
-	       For directed graphs, this operation runs in O(Vcapacity+Ecurrent) time. */
+	       For directed graphs, this operation runs in O(Vcurrent+Ecurrent) time. */
 ALGODEF AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId);
 /** @brief Add a new edge to a graph, connecting srcVertexId to destVertexId.
            If the graph's edge mode is kAlgoGraphEdgeUndirected, a second edge will automatically be added
@@ -1028,16 +1028,18 @@ typedef struct AlgoGraphEdge
 
 typedef struct AlgoGraphImpl
 {
-	int32_t *vertexDegrees; /* degree (outgoing edge count) per vertex. Unused/invalid vertices have a degree of -1. */
-	AlgoData *vertexData; /* Arbitrary per-vertex data. One element per vertex. Unused elements used as a free list of unused vertices. */
-	AlgoGraphEdge **vertexEdges; /* One edge list per vertex. */
-	AlgoAllocPool edgePool; /* pool from which edges are allocated. */
 	int32_t vertexCapacity;
 	int32_t edgeCapacity;
 	int32_t currentVertexCount; /* 0..vertexCapacity */
 	int32_t currentEdgeCount; /* 0..edgeCapacity */
 	int32_t nextFreeVertexId; /* Used to manage the unused vertex pool in vertexData[] */
 	AlgoGraphEdgeMode edgeMode;
+	int32_t *vertexDegrees; /* degree (outgoing edge count) per vertex. Unused/invalid vertices have a degree of -1. */
+	AlgoData *vertexData; /* Arbitrary per-vertex data. One element per vertex. Unused elements used as a free list of unused vertices. */
+	int32_t *validVertexIds; /* unsorted list of valid vertex IDs. The first currentVertexCount elements are valid; the rest are undefined. */
+	int32_t *vertexIdToValidIndex; /* reverse-lookup from vertexId into validVertexIds[], to keep removal reasonably efficient. */
+	AlgoGraphEdge **vertexEdges; /* One edge list per vertex. */
+	AlgoAllocPool edgePool; /* pool from which edges are allocated. */
 } AlgoGraphImpl;
 
 ALGO_INTERNAL ALGO_INLINE int iGraphIsValidVertexId(const AlgoGraph graph, int32_t vertexId)
@@ -1091,9 +1093,11 @@ AlgoError algoGraphComputeBufferSize(size_t *outBufferSize, int32_t vertexCapaci
 	const AlgoGraphEdgeMode edgeMode)
 {
 	AlgoError err;
-	const size_t vertexDegreesSize     = vertexCapacity * sizeof(int32_t);
-	const size_t vertexDataSize = vertexCapacity * sizeof(AlgoData);
-	const size_t vertexEdgesSize      = vertexCapacity * sizeof(AlgoGraphEdge*); /* one edge list per vertex */
+	const size_t vertexDegreesSize        = vertexCapacity * sizeof(int32_t);
+	const size_t vertexDataSize           = vertexCapacity * sizeof(AlgoData);
+	const size_t validVertexIdsSize       = vertexCapacity * sizeof(int32_t);
+	const size_t vertexIdToValidIndexSize = vertexCapacity * sizeof(int32_t);
+	const size_t vertexEdgesSize          = vertexCapacity * sizeof(AlgoGraphEdge*); /* one edge list per vertex */
 	const int32_t nodesPerEdge = (edgeMode == kAlgoGraphEdgeDirected) ? 1 : 2; /* undirected edges store two nodes: x->y and y->x */
 	size_t edgePoolSize = 0;
 	if (NULL == outBufferSize ||
@@ -1107,7 +1111,8 @@ AlgoError algoGraphComputeBufferSize(size_t *outBufferSize, int32_t vertexCapaci
 	{
 		return err;
 	}
-	*outBufferSize = sizeof(AlgoGraphImpl) + vertexDegreesSize + vertexDataSize + vertexEdgesSize + edgePoolSize;
+	*outBufferSize = sizeof(AlgoGraphImpl) + vertexDegreesSize + vertexDataSize + validVertexIdsSize
+		+ vertexIdToValidIndexSize + vertexEdgesSize + edgePoolSize;
 	return kAlgoErrorNone;
 }
 
@@ -1160,6 +1165,14 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 		(*outGraph)->vertexData[vertexCapacity-1].asInt = -1;
 	}
 	bufferNext += vertexDataSize;
+
+	const size_t validVertexIdsSize = vertexCapacity * sizeof(int32_t);
+	(*outGraph)->validVertexIds = (int32_t*)bufferNext;
+	bufferNext += validVertexIdsSize;
+
+	const size_t vertexIdToValidIndexSize = vertexCapacity * sizeof(int32_t);
+	(*outGraph)->vertexIdToValidIndex = (int32_t*)bufferNext;
+	bufferNext += vertexIdToValidIndexSize;
 
 	const size_t vertexEdgesSize = vertexCapacity*sizeof(AlgoGraphEdge*); /* one linked list per vertex */
 	(*outGraph)->vertexEdges = (AlgoGraphEdge**)bufferNext;
@@ -1271,7 +1284,7 @@ AlgoError algoGraphValidate(const AlgoGraph graph)
 		{
 			if (iGraphIsValidVertexId(graph, nextFreeVertexId))
 			{
-				errorCode = 8; /* vertex in the invalid list thinks it's valid. */
+				errorCode = 8; /* vertex in the free list thinks it's valid. */
 				goto ALGO_GRAPH_VALIDATE_END;
 			}
 			freeVertexCount += 1;
@@ -1281,6 +1294,23 @@ AlgoError algoGraphValidate(const AlgoGraph graph)
 		{
 			errorCode = 9; /* actual free vertex count doesn't match expected value. */
 			goto ALGO_GRAPH_VALIDATE_END;
+		}
+	}
+	/* Check valid vertex list */
+	{
+		for(int32_t iValidVert=0; iValidVert<graph->currentVertexCount; ++iValidVert)
+		{
+			int32_t validVertexId = graph->validVertexIds[iValidVert];
+			if (!iGraphIsValidVertexId(graph, validVertexId))
+			{
+				errorCode = 10; /* vertex in the valid list is invalid */
+				goto ALGO_GRAPH_VALIDATE_END;
+			}
+			if (graph->vertexIdToValidIndex[validVertexId] != iValidVert)
+			{
+				errorCode = 11; /* reverse lookup table mismatch */
+				goto ALGO_GRAPH_VALIDATE_END;
+			}
 		}
 	}
 
@@ -1408,6 +1438,8 @@ AlgoError algoGraphAddVertex(AlgoGraph graph, AlgoData vertexData, int32_t *outV
 	graph->vertexDegrees[newVertexId] = 0;
 	graph->vertexEdges[newVertexId] = 0;
 	graph->vertexData[newVertexId] = vertexData;
+	graph->validVertexIds[graph->currentVertexCount] = newVertexId;
+	graph->vertexIdToValidIndex[newVertexId] = graph->currentVertexCount;
 	graph->currentVertexCount += 1;
 	return kAlgoErrorNone;
 }
@@ -1440,7 +1472,7 @@ AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 	{
 		/* Remove all outgoing edges */
 		AlgoGraphEdge *outEdge = graph->vertexEdges[vertexId];
-		int32_t srcVertexId;
+		int32_t iValidVert;
 		while(outEdge != NULL)
 		{
 			AlgoGraphEdge *outToFree = outEdge;
@@ -1451,14 +1483,13 @@ AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 		/* Prevent this vert's edge list from being searched in the loop below */
 		graph->vertexDegrees[vertexId] = 0;
 		graph->vertexEdges[vertexId] = NULL;
-		/*	Search all other vertices for incoming edges, and remove them. This *really* sucks, but to avoid it I'd need one of these:
-			- a way to efficiently iterate over valid vertices ONLY, which turns O(Vmax+E) into O(Vcurrent+E)
-			- a per-vertex list of vertices with edges linking to that vertex, which uses O(E) more memory but reduces running time to
-			  O(1) expected / O(E) worst-case.
-			See if vertex removal becomes a bottleneck first. For now, it's just functional.
+		/*	Search all other vertices for incoming edges, and remove them. This *really* sucks, but to avoid it I'd need:
+			-	a per-vertex list of vertices with edges linking to that vertex, which uses O(E) more memory but reduces running time to
+				O(1) expected / O(E) worst-case, and adds a lot of extra bookkeeping.
 			*/
-		for(srcVertexId=0; srcVertexId<graph->vertexCapacity; srcVertexId += 1)
+		for(iValidVert=0; iValidVert<graph->currentVertexCount; iValidVert += 1)
 		{
+			int32_t srcVertexId = graph->validVertexIds[iValidVert];
 			if (!iGraphIsValidVertexId(graph, srcVertexId))
 				continue;
 			int removed = iGraphRemoveEdgeFromList(graph, srcVertexId, vertexId);
@@ -1468,6 +1499,13 @@ AlgoError algoGraphRemoveVertex(AlgoGraph graph, int32_t vertexId)
 	/* Finally, remove the vertex. */
 	graph->vertexData[vertexId].asInt = graph->nextFreeVertexId;
 	graph->nextFreeVertexId = vertexId;
+	{
+		/* Update the valid vertex list and reverse-lookup table */
+		int32_t destValidIndex = graph->vertexIdToValidIndex[vertexId];
+		int32_t finalValidVertexId = graph->validVertexIds[graph->currentVertexCount-1];
+		graph->validVertexIds[destValidIndex] = finalValidVertexId;
+		graph->vertexIdToValidIndex[finalValidVertexId] = destValidIndex;
+	}
 	graph->currentVertexCount -= 1;
 	graph->vertexDegrees[vertexId] = -1;
 	graph->vertexEdges[vertexId] = NULL;
@@ -2124,14 +2162,15 @@ AlgoError algoGraphTopoSort(const AlgoGraph graph, int32_t outSortedVertices[], 
 		iGraphTopoSortVertexLate, NULL
 	};
 	dfsCallbacks.vertexFuncLateUserData = &sortResults;
-	for(int iVert=0; iVert<graph->vertexCapacity; ++iVert)
+	for(int iValidVert=0; iValidVert<graph->currentVertexCount; ++iValidVert)
 	{
+		int32_t vertexId = graph->validVertexIds[iValidVert];
 		int isVertexSorted = 0;
-		err = algoGraphDfsStateIsVertexProcessed(dfsState, iVert, &isVertexSorted);
-		if (iGraphIsValidVertexId(graph, iVert) &&
+		err = algoGraphDfsStateIsVertexProcessed(dfsState, vertexId, &isVertexSorted);
+		if (iGraphIsValidVertexId(graph, vertexId) &&
 			!isVertexSorted)
 		{
-			err = algoGraphDfs(graph, dfsState, iVert, dfsCallbacks);
+			err = algoGraphDfs(graph, dfsState, vertexId, dfsCallbacks);
 			if (kAlgoErrorNone != err)
 				return err;
 			if (sortResults.nextFreeIndex < 0)

@@ -47,6 +47,7 @@ static void bfsProcessEdge(AlgoGraph graph, AlgoGraphBfsState bfsState, int32_t 
 	(void)graph;
 	(void)bfsState;
 	(void)userData;
+	(void)p0;
 	ZOMBO_ASSERT(p0 >= 0 && p0 < kNumPeople, "invalid personId %d", p0);
 	ZOMBO_ASSERT(p1 >= 0 && p1 < kNumPeople, "invalid personId %d", p1);
 	printf("\tedge to %s\n", people[p1].name);
@@ -73,6 +74,7 @@ static void dfsProcessEdge(AlgoGraph graph, AlgoGraphDfsState dfsState, int32_t 
 	(void)graph;
 	(void)dfsState;
 	(void)userData;
+	(void)p0;
 	ZOMBO_ASSERT(p0 >= 0 && p0 < kNumPeople, "invalid personId %d", p0);
 	ZOMBO_ASSERT(p1 >= 0 && p1 < kNumPeople, "invalid personId %d", p1);
 	printf("\tedge to %s\n", people[p1].name);

@@ -6,14 +6,9 @@ FEATURES:
 -	Simulated Annealing
 
 API CHANGES:
+-	Add graph function to reorder valid vertex list to optimize future traversal passes.
 -	Add a dirty counter to the graph, incremented whenever it changes. Copy dirty counter when bfs/dfsstate is created.
 	Check that counters match in Bfs/Dfs functions.
--	Add an array of valid vertex IDs to graphs?
-	Current problem: Impossible to iterate over existing vertices; must iterate over full vertex capacity.
-	Keeping an unsorted list would make this possible.
-	Maintaining the list would be O(1).
-	Adds another 4 bytes per vertex to memory requirements.
-	Traversal could potentially thrash the cache; could provide a function to compact & optimize.
 -	AlgoError algoFoo(int x, int y, int *outZ)
 	-	ALGO_VALIDATE works!
 	-	calling code can be cumbersome
