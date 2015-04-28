@@ -6,7 +6,13 @@ FEATURES:
 -	Simulated Annealing
 
 API CHANGES:
+-	Add functions to retrieve an object's buffer size. This may require renaming algoFooBufferSize() to algoFooMinimumBufferSize()
+	or something similar.
 -	Add graph function to reorder valid vertex list to optimize future traversal passes.
+-	Detailed error codes. We have 4 billion possible errors; why not be specific about what's wrong?
+	-	15: 0: category-specific error code
+	-	30:16: category code
+	-	   31: Always set (except for kAlgoErrorNone = 0)
 -	Add a dirty counter to the graph, incremented whenever it changes. Copy dirty counter when bfs/dfsstate is created.
 	Check that counters match in Bfs/Dfs functions.
 -	AlgoError algoFoo(int x, int y, int *outZ)
@@ -20,7 +26,7 @@ API CHANGES:
 	#define AlgoData intptr_t -- guaranteed to be the right size on all platforms
 	-	AlgoDataFromPtr:	easy
 	-	AlgoDataFromInt:	easy
-	-	AlgoDataFromFloat:	
+	-	AlgoDataFromFloat:	hmmm. Double by default is not desirable.
 	Make it 64 bit everywhere?
 	-	Endianness issues?
 -	Replace internal pointers with offsets
@@ -29,6 +35,7 @@ API CHANGES:
 		resizing gets easier
 	CONs:
 		Every pointer access gets an extra addition
+		Significantly increased internal complexity (no more structs, just bundles of offsets; hard to debug!)
 		Can't return pointers into containers (or just document that resizing/relocating will invalidate them)
 -	Resizeable objects?
 	Requires storing old buffer size
@@ -46,4 +53,22 @@ API CHANGES:
 		newSize > oldSize, newBuffer = oldBuffer	in-place grow
 		newSize > oldSize, non-overlapping:			out-of-place grow
 		newSize > oldSize, overlapping:				ERROR
-		
+	
+	WHAT ABOUT THIS:
+	Store buffer address and size in all Algo objects.
+	AlgoFoo algoFooRelocate(AlgoFoo foo, size_t newBufferSize);
+	-	Does not resize.
+	-	Implicitly uses foo itself as the address of the new buffer, vs. the stored pointer-to-self as the old buffer.
+	-	Patches all internal pointers, applying an offset of (foo - foo.oldBuffer) bytes to each pointer.
+	void algoFooResize(AlgoFoo foo, ...,  size_t newBufferSize);
+	-	"..." are the relevant parameters from algoFooCreate()
+	-	always in-place
+	-	When enlarging, requires that the object has already been relocated to a larger buffer.
+	-	Any way to leverage the existing algoFooCreate() & avoid lots of duplicated init code?
+	use case: realloc() to a larger buffer
+	-	user calls realloc(), algoFooRelocate(), algoFooResize()
+		-	nope, doesn't work; users still need to know that they can just reassign oldFoo to newBuffer.
+			Otherwise, oldFoo's contents are undefined after realloc() succeeds.
+		-	Could just make this an official, documented feature.
+	-	relocate is a no-op if the current buffer can be expanded in-place
+	-	relocate will fail if the new buffer is too small for the current contents.
