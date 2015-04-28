@@ -226,7 +226,7 @@ int main(void)
 	// Create graph; add word vertices; build wordId->vertexId lookup table
 	size_t hamGraphBufferSize = 0;
 	int32_t expectedEdgeCount = 33383;//wordCount*(26-1)*kMaxWordLength;
-	ALGO_VALIDATE( algoGraphBufferSize(&hamGraphBufferSize, wordCount, expectedEdgeCount, kAlgoGraphEdgeUndirected) );
+	ALGO_VALIDATE( algoGraphComputeBufferSize(&hamGraphBufferSize, wordCount, expectedEdgeCount, kAlgoGraphEdgeUndirected) );
 	void *hamGraphBuffer = malloc(hamGraphBufferSize);
 	AlgoGraph hamGraph;
 	ALGO_VALIDATE( algoGraphCreate(&hamGraph, wordCount, expectedEdgeCount, kAlgoGraphEdgeUndirected, hamGraphBuffer, hamGraphBufferSize) );
@@ -290,7 +290,7 @@ int main(void)
 		}
 	}
 	int32_t hamEdgeCount = -1;
-	ALGO_VALIDATE( algoGraphCurrentEdgeCount(hamGraph, &hamEdgeCount) );
+	ALGO_VALIDATE( algoGraphGetCurrentEdgeCount(hamGraph, &hamEdgeCount) );
 	ALGO_VALIDATE( algoGraphValidate(hamGraph) );
 
 	{
@@ -344,7 +344,7 @@ int main(void)
 	
 	// shortest-path
 	size_t hamGraphBfsBufferSize = 0;
-	ALGO_VALIDATE( algoGraphBfsStateBufferSize(&hamGraphBfsBufferSize, hamGraph) );
+	ALGO_VALIDATE( algoGraphBfsStateComputeBufferSize(&hamGraphBfsBufferSize, hamGraph) );
 	void *hamGraphBfsBuffer = malloc(hamGraphBfsBufferSize);
 	AlgoGraphBfsState hamBfs;
 	printf("Ctrl-D + Enter to exit\n\n");

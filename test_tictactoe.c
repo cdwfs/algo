@@ -251,7 +251,7 @@ int main(void)
 	const int32_t kVertexCapacity = 5478;
 	const int32_t kEdgeCapacity   = 16167;
 #endif
-	ALGO_VALIDATE( algoGraphBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected) );
+	ALGO_VALIDATE( algoGraphComputeBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected) );
 	graphBuffer = malloc(graphBufferSize);
 	ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected, graphBuffer, graphBufferSize) );
 	ALGO_VALIDATE( algoGraphValidate(graph) );
@@ -269,7 +269,7 @@ int main(void)
 	addMovesForState(graph, table, startState);
 
 	size_t dfsStateBufferSize = 0;
-	ALGO_VALIDATE( algoGraphDfsStateBufferSize(&dfsStateBufferSize, graph) );
+	ALGO_VALIDATE( algoGraphDfsStateComputeBufferSize(&dfsStateBufferSize, graph) );
 	void *dfsStateBuffer = malloc(dfsStateBufferSize);
 	AlgoGraphDfsState dfsState;
 	ALGO_VALIDATE( algoGraphDfsStateCreate(&dfsState, graph, dfsStateBuffer, dfsStateBufferSize) );

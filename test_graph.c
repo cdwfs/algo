@@ -105,7 +105,7 @@ int main(void)
 	edgeMode = kAlgoGraphEdgeUndirected; /*(rand() % 2) ? kAlgoGraphEdgeDirected : kAlgoGraphEdgeUndirected; */
 	printf("Testing AlgoGraph (vertexCapacity: %d, edgeCapacity: %d, test count: %d)\n", kVertexCapacity, kEdgeCapacity, kTestCount);
 
-	ALGO_VALIDATE( algoGraphBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, edgeMode) );
+	ALGO_VALIDATE( algoGraphComputeBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, edgeMode) );
 	graphBuffer = malloc(graphBufferSize);
 	ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, edgeMode, graphBuffer, graphBufferSize) );
 	ALGO_VALIDATE( algoGraphValidate(graph) );
@@ -164,7 +164,7 @@ int main(void)
 		void *bfsStateBuffer = NULL;
 		size_t bfsStateBufferSize = 0;
 		AlgoGraphBfsState bfsState;
-		ALGO_VALIDATE( algoGraphBfsStateBufferSize(&bfsStateBufferSize, graph) );
+		ALGO_VALIDATE( algoGraphBfsStateComputeBufferSize(&bfsStateBufferSize, graph) );
 		bfsStateBuffer = malloc(bfsStateBufferSize);
 		ALGO_VALIDATE( algoGraphBfsStateCreate(&bfsState, graph, bfsStateBuffer, bfsStateBufferSize) );
 		const int32_t bfsRoot = kCort;
@@ -194,7 +194,7 @@ int main(void)
 		void *dfsStateBuffer = NULL;
 		size_t dfsStateBufferSize = 0;
 		AlgoGraphDfsState dfsState;
-		ALGO_VALIDATE( algoGraphDfsStateBufferSize(&dfsStateBufferSize, graph) );
+		ALGO_VALIDATE( algoGraphDfsStateComputeBufferSize(&dfsStateBufferSize, graph) );
 		dfsStateBuffer = malloc(dfsStateBufferSize);
 		ALGO_VALIDATE( algoGraphDfsStateCreate(&dfsState, graph, dfsStateBuffer, dfsStateBufferSize) );
 		int iPerson;

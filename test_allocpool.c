@@ -60,7 +60,7 @@ int main(void)
 		void *poolBuffer = NULL;
 		Allocation *allocations = malloc(maxElemCount*sizeof(Allocation));
 		int32_t iTest, iAlloc;
-		ALGO_VALIDATE( algoAllocPoolBufferSize(&poolBufferSize, elemSize, maxElemCount) );
+		ALGO_VALIDATE( algoAllocPoolComputeBufferSize(&poolBufferSize, elemSize, maxElemCount) );
 		poolBuffer = malloc(poolBufferSize);
 		ALGO_VALIDATE( algoAllocPoolCreate(&allocPool, elemSize, maxElemCount, poolBuffer, poolBufferSize) );
 		printf("AllocPool: Total capacity=%4d elements, elemSize=%3d\n", maxElemCount, elemSize);

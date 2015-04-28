@@ -4,9 +4,9 @@ static int testQueueInsert(AlgoQueue queue, const AlgoData elem)
 {
 	int32_t capacity = -1;
 	int32_t beforeSize = -1, afterSize = -1;
-	ALGO_VALIDATE( algoQueueCapacity(queue, &capacity) );
+	ALGO_VALIDATE( algoQueueGetCapacity(queue, &capacity) );
 
-	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
+	ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &beforeSize) );
 	if (beforeSize == capacity)
 	{
 		return 0; /* queue is full */
@@ -14,7 +14,7 @@ static int testQueueInsert(AlgoQueue queue, const AlgoData elem)
 
 	ALGO_VALIDATE( algoQueueInsert(queue, elem) );
 
-	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
+	ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &afterSize) );
 	ZOMBO_ASSERT(beforeSize+1 == afterSize, "queue grew by more than one element");
 	return 1;
 }
@@ -22,7 +22,7 @@ static int testQueueInsert(AlgoQueue queue, const AlgoData elem)
 static int testQueueRemove(AlgoQueue queue, AlgoData *outElem)
 {
 	int32_t beforeSize = -1, afterSize = -1;
-	ALGO_VALIDATE( algoQueueCurrentSize(queue, &beforeSize) );
+	ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &beforeSize) );
 	if (beforeSize == 0)
 	{
 		outElem->asInt = -1;
@@ -31,7 +31,7 @@ static int testQueueRemove(AlgoQueue queue, AlgoData *outElem)
 
 	ALGO_VALIDATE( algoQueueRemove(queue, outElem) );
 
-	ALGO_VALIDATE( algoQueueCurrentSize(queue, &afterSize) );
+	ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &afterSize) );
 	ZOMBO_ASSERT(beforeSize-1 == afterSize, "queue shrunk by more than one element");
 
 	return 1;
@@ -53,11 +53,11 @@ int main(void)
 
 	kQueueCapacity = 512 + (rand() % 1024);
 	printf("Testing AlgoQueue (capacity: %d, test count: %d)\n", kQueueCapacity, kTestElemCount);
-	ALGO_VALIDATE( algoQueueBufferSize(&queueBufferSize, kQueueCapacity) );
+	ALGO_VALIDATE( algoQueueComputeBufferSize(&queueBufferSize, kQueueCapacity) );
 	queueBuffer = malloc(queueBufferSize);
 	ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity, queueBuffer, queueBufferSize) );
 
-	ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
+	ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &currentSize) );
 	ZOMBO_ASSERT(0 == currentSize, "newly created queue has size=%d", currentSize);
 
 	/* In this test, we alternate between adding a chunk of values to
@@ -73,7 +73,7 @@ int main(void)
 		{
 			nextToAdd += testQueueInsert(queue, algoDataFromInt(nextToAdd));
 		}
-		ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
+		ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &currentSize) );
 		if (currentSize > kQueueCapacity)
 		{
 			fprintf(stderr, "ERROR: Queue size exceeds capacity\n");
@@ -107,7 +107,7 @@ int main(void)
 			ZOMBO_ASSERT(elem.asInt == nextToCheck, "ERROR: Queue element mismatch\n");
 			nextToCheck += nextToCheckInc;
 		}
-		ALGO_VALIDATE( algoQueueCurrentSize(queue, &currentSize) );
+		ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &currentSize) );
 		ZOMBO_ASSERT(currentSize <= kQueueCapacity, "ERROR: Queue size exceeds capacity\n");
 
 		printf(" - %d elements left to check\n\n", max(0, kTestElemCount - nextToCheck));

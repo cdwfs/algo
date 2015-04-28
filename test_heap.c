@@ -6,8 +6,8 @@ static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 	int32_t beforeSize = -1, afterSize = -1;
 	AlgoData newKey = algoDataFromInt(rand() % capacity);
 	AlgoData newData = newKey;
-	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
-	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
+	ALGO_VALIDATE( algoHeapGetCapacity(heap, &capacity) );
+	ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &beforeSize) );
 	if (beforeSize == capacity)
 	{
 		return 0; /* heap is full */
@@ -19,7 +19,7 @@ static int testHeapInsert(AlgoHeap heap, int32_t heapContents[])
 	                           
 	heapContents[newKey.asInt] += 1;
 
-	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
+	ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &afterSize) );
 	ZOMBO_ASSERT(beforeSize+1 == afterSize, "heap grew by more than one entry");
 	ALGO_VALIDATE( algoHeapValidate(heap) );
 	return 1;
@@ -32,8 +32,8 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 	AlgoData minKey, minKeyPeek;
 	AlgoData minData, minDataPeek;
 	int iVal;
-	ALGO_VALIDATE( algoHeapCapacity(heap, &capacity) );
-	ALGO_VALIDATE( algoHeapCurrentSize(heap, &beforeSize) );
+	ALGO_VALIDATE( algoHeapGetCapacity(heap, &capacity) );
+	ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &beforeSize) );
 	if (beforeSize == 0)
 	{
 		return 0; /* heap is empty */
@@ -57,7 +57,7 @@ static int testHeapPop(AlgoHeap heap, int32_t heapContents[])
 
 	heapContents[minKey.asInt] -= 1;
 
-	ALGO_VALIDATE( algoHeapCurrentSize(heap, &afterSize) );
+	ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &afterSize) );
 	ZOMBO_ASSERT(beforeSize-1 == afterSize, "heap shrunk by more than one element");
 	ALGO_VALIDATE( algoHeapValidate(heap) );
 	return 1;
@@ -81,10 +81,10 @@ int main(void)
 	heapContents = malloc(kHeapCapacity*sizeof(int32_t));
 	memset(heapContents, 0, kHeapCapacity*sizeof(int32_t));
 
-	ALGO_VALIDATE( algoHeapBufferSize(&heapBufferSize, kHeapCapacity) );
+	ALGO_VALIDATE( algoHeapComputeBufferSize(&heapBufferSize, kHeapCapacity) );
 	heapBuffer = malloc(heapBufferSize);
 	ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, algoDataCompareIntAscending, heapBuffer, heapBufferSize) );
-	ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
+	ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &currentSize) );
 	ZOMBO_ASSERT(0 == currentSize, "newly created heap has size=%d", currentSize);
 	for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)
 	{
@@ -98,7 +98,7 @@ int main(void)
 			testHeapInsert(heap, heapContents);
 		}
 
-		ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
+		ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &currentSize) );
 		numPops = 1 + (rand() % currentSize);
 		printf(" - Popping %d elements...\n", numPops);
 		for(iPop=0; iPop<numPops; ++iPop)
@@ -106,7 +106,7 @@ int main(void)
 			testHeapPop(heap, heapContents);
 		}
 
-		ALGO_VALIDATE( algoHeapCurrentSize(heap, &currentSize) );
+		ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &currentSize) );
 		for(iVal=0; iVal<kHeapCapacity; ++iVal)
 		{
 			elemCount += heapContents[iVal];

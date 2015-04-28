@@ -23,7 +23,7 @@ int main(void)
 		size_t graphBufferSize = 0;
 		AlgoGraph graph;
 
-		ALGO_VALIDATE( algoGraphBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected) );
+		ALGO_VALIDATE( algoGraphComputeBufferSize(&graphBufferSize, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected) );
 		graphBuffer = malloc(graphBufferSize);
 		ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected, graphBuffer, graphBufferSize) );
 
@@ -32,7 +32,7 @@ int main(void)
 			ALGO_VALIDATE( algoGraphAddVertex(graph, algoDataFromInt(0xABCD0000 + iVert), vertexIds+iVert) );
 		}
 		int32_t actualVertexCount = 0;
-		ALGO_VALIDATE( algoGraphCurrentVertexCount(graph, &actualVertexCount) );
+		ALGO_VALIDATE( algoGraphGetCurrentVertexCount(graph, &actualVertexCount) );
 		ZOMBO_ASSERT(actualVertexCount == vertexCount, "adding N vertices didn't result in an N-vertex graph...?");
 
 		GraphEdge *edges = malloc(kEdgeCapacity*sizeof(GraphEdge));
@@ -50,14 +50,14 @@ int main(void)
 			edgesEntryCount += 1;
 		}
 		int32_t actualEdgeCount = 0;
-		ALGO_VALIDATE( algoGraphCurrentEdgeCount(graph, &actualEdgeCount) );
+		ALGO_VALIDATE( algoGraphGetCurrentEdgeCount(graph, &actualEdgeCount) );
 		printf("Testing graph (%5d vertices, %5d edges)\n", actualVertexCount, actualEdgeCount);
 		printf("\tValidate...\n");
 		ALGO_VALIDATE( algoGraphValidate(graph) );
 
 		printf("\tTopoSort\n");
 		size_t topoBufferSize = 0;
-		ALGO_VALIDATE( algoGraphTopoSortBufferSize(&topoBufferSize, graph) );
+		ALGO_VALIDATE( algoGraphTopoSortComputeBufferSize(&topoBufferSize, graph) );
 		void *topoBuffer = malloc(topoBufferSize);
 		ALGO_VALIDATE( algoGraphTopoSort(graph, sortedVertexIds, vertexCount, topoBuffer, topoBufferSize) );
 		free(topoBuffer);
