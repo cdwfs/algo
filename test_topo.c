@@ -7,7 +7,7 @@ typedef struct GraphEdge
 
 int main(void)
 {
-	unsigned int randomSeed = 0x54F66659;//(unsigned int)time(NULL);
+	unsigned int randomSeed = (unsigned int)time(NULL);
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
 
