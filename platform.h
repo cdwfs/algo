@@ -52,7 +52,7 @@ extern "C"
 // - ZOMBO_ASSERT_RETURN(cond,retval,msg,...): if cond is not true, print msg and assert, then return retval (for release builds)
 // - ZOMBO_ERROR(msg): unconditionally print msg and assert.
 #if defined(NDEBUG)
-#	define ZOMBO_ASSERT(cond,msg,...) do { (void)( true ? (void)0 : (void)(cond) ); } while(0,0)
+#	define ZOMBO_ASSERT(cond,msg,...) do { (void)( 1 ? (void)0 : (void)(cond) ); } while(0,0)
 #	define ZOMBO_ASSERT_RETURN(cond,retval,msg,...) do { if (!(cond)) { return (retval); } } while(0,0)
 #elif defined(_MSC_VER)
 #	define ZOMBO_ASSERT(cond,msg,...) \
