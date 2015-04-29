@@ -65,6 +65,10 @@ int main(void)
 		ALGO_VALIDATE( algoAllocPoolCreate(&allocPool, elemSize, maxElemCount, poolBuffer, poolBufferSize) );
 		printf("AllocPool: Total capacity=%4d elements, elemSize=%3d\n", maxElemCount, elemSize);
 
+		size_t reportedSize;
+		ALGO_VALIDATE( algoAllocPoolGetBufferSize(allocPool, &reportedSize) );
+		ZOMBO_ASSERT(reportedSize == poolBufferSize, "reported size does not match input buffer size");
+
 		for(iAlloc=0; iAlloc<maxElemCount; ++iAlloc)
 		{
 			allocationInit(allocations+iAlloc, iAlloc);

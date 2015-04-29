@@ -61,6 +61,10 @@ int main(void)
 		stackBuffer = malloc(stackBufferSize);
 		ALGO_VALIDATE( algoStackCreate(&stack, kStackCapacity, stackBuffer, stackBufferSize) );
 
+		size_t reportedSize;
+		ALGO_VALIDATE( algoStackGetBufferSize(stack, &reportedSize) );
+		ZOMBO_ASSERT(reportedSize == stackBufferSize, "reported size does not match input buffer size");
+
 		ALGO_VALIDATE( algoStackGetCurrentSize(stack, &currentSize) );
 		ZOMBO_ASSERT(0 == currentSize, "newly created stack has size=%d", currentSize);
 

@@ -112,6 +112,10 @@ int main(void)
 	ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, edgeMode, graphBuffer, graphBufferSize) );
 	ALGO_VALIDATE( algoGraphValidate(graph) );
 
+	size_t reportedSize;
+	ALGO_VALIDATE( algoGraphGetBufferSize(graph, &reportedSize) );
+	ZOMBO_ASSERT(reportedSize == graphBufferSize, "reported size does not match input buffer size");
+
 	/* Hard-code some graph data */
 	/* TODO: test directed graphs as well */
 	{
@@ -169,6 +173,11 @@ int main(void)
 		ALGO_VALIDATE( algoGraphBfsStateComputeBufferSize(&bfsStateBufferSize, graph) );
 		bfsStateBuffer = malloc(bfsStateBufferSize);
 		ALGO_VALIDATE( algoGraphBfsStateCreate(&bfsState, graph, bfsStateBuffer, bfsStateBufferSize) );
+
+		size_t reportedSize;
+		ALGO_VALIDATE( algoGraphBfsStateGetBufferSize(bfsState, &reportedSize) );
+		ZOMBO_ASSERT(reportedSize == bfsStateBufferSize, "reported size does not match input buffer size");
+
 		const int32_t bfsRoot = kCort;
 		printf("\n\nBFS search from %s...\n", people[bfsRoot].name);
 		AlgoGraphBfsCallbacks bfsCallbacks = {
@@ -199,6 +208,11 @@ int main(void)
 		ALGO_VALIDATE( algoGraphDfsStateComputeBufferSize(&dfsStateBufferSize, graph) );
 		dfsStateBuffer = malloc(dfsStateBufferSize);
 		ALGO_VALIDATE( algoGraphDfsStateCreate(&dfsState, graph, dfsStateBuffer, dfsStateBufferSize) );
+
+		size_t reportedSize;
+		ALGO_VALIDATE( algoGraphDfsStateGetBufferSize(dfsState, &reportedSize) );
+		ZOMBO_ASSERT(reportedSize == dfsStateBufferSize, "reported size does not match input buffer size");
+
 		int iPerson;
 		const int32_t dfsRoot = kCort;
 		printf("\n\nDFS search from %s...\n", people[dfsRoot].name);

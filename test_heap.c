@@ -84,6 +84,11 @@ int main(void)
 	ALGO_VALIDATE( algoHeapComputeBufferSize(&heapBufferSize, kHeapCapacity) );
 	heapBuffer = malloc(heapBufferSize);
 	ALGO_VALIDATE( algoHeapCreate(&heap, kHeapCapacity, algoDataCompareIntAscending, heapBuffer, heapBufferSize) );
+
+	size_t reportedSize;
+	ALGO_VALIDATE( algoHeapGetBufferSize(heap, &reportedSize) );
+	ZOMBO_ASSERT(reportedSize == heapBufferSize, "reported size does not match input buffer size");
+
 	ALGO_VALIDATE( algoHeapGetCurrentSize(heap, &currentSize) );
 	ZOMBO_ASSERT(0 == currentSize, "newly created heap has size=%d", currentSize);
 	for(iHeapTest=0; iHeapTest<kTestCount; ++iHeapTest)

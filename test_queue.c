@@ -57,6 +57,10 @@ int main(void)
 	queueBuffer = malloc(queueBufferSize);
 	ALGO_VALIDATE( algoQueueCreate(&queue, kQueueCapacity, queueBuffer, queueBufferSize) );
 
+	size_t reportedSize;
+	ALGO_VALIDATE( algoQueueGetBufferSize(queue, &reportedSize) );
+	ZOMBO_ASSERT(reportedSize == queueBufferSize, "reported size does not match input buffer size");
+
 	ALGO_VALIDATE( algoQueueGetCurrentSize(queue, &currentSize) );
 	ZOMBO_ASSERT(0 == currentSize, "newly created queue has size=%d", currentSize);
 

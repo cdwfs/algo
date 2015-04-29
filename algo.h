@@ -92,12 +92,14 @@ ALGODEF AlgoError algoAllocPoolComputeBufferSize(size_t *outBufferSize, const in
 	*/
 ALGODEF AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t elementSize, const int32_t elementCount,
 	void *buffer, const size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoAllocPool was created. */
+ALGODEF AlgoError algoAllocPoolGetBufferSize(const AlgoAllocPool allocPool, size_t *outBufferSize);
 /** @brief Allocates one element from the pool, and returns a pointer to it. */
 ALGODEF AlgoError algoAllocPoolAlloc(AlgoAllocPool allocPool, void **outPtr);
 /** @brief Frees an element previously allocated by algoAllocPoolAlloc(). */
 ALGODEF AlgoError algoAllocPoolFree(AlgoAllocPool allocPool, void *p);
 /** @brief Queries the element size of a pool allocator. */
-ALGODEF AlgoError algoAllocPoolGetElementSize(AlgoAllocPool allocPool, int32_t *outElementSize);
+ALGODEF AlgoError algoAllocPoolGetElementSize(const AlgoAllocPool allocPool, int32_t *outElementSize);
 
 /**
  * @brief Implements a stack (FILO/LIFO) data structure.
@@ -109,7 +111,7 @@ ALGODEF AlgoError algoAllocPoolGetElementSize(AlgoAllocPool allocPool, int32_t *
  * AlgoError err; // Should be kAlgoErrorNone after every function call
  * AlgoData poppedData;
  *
- * err = algoStackBufferSize(&stackBufferSize, stackCapacity);
+ * err = algoStackComputeBufferSize(&stackBufferSize, stackCapacity);
  * stackBuffer = malloc(stackBufferSize);
  * err = algoStackCreate(&stack, stackCapacity, stackBuffer, stackBufferSize);
  * err = algoStackPush(stack, algoDataFromInt(5)); // Push the number "5" to the stack
@@ -122,6 +124,8 @@ typedef struct AlgoStackImpl *AlgoStack;
 ALGODEF AlgoError algoStackComputeBufferSize(size_t *outBufferSize, int32_t stackCapacity);
 /** @brief Initializes a stack object using the provided buffer. */
 ALGODEF AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buffer, size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoStack was created. */
+ALGODEF AlgoError algoStackGetBufferSize(const AlgoStack stack, size_t *outBufferSize);
 /** @brief Pushes an element to the stack. */
 ALGODEF AlgoError algoStackPush(AlgoStack stack, const AlgoData elem);
 /** @brief Pops an element from the stack. */
@@ -154,6 +158,8 @@ typedef struct AlgoQueueImpl *AlgoQueue;
 ALGODEF AlgoError algoQueueComputeBufferSize(size_t *outBufferSize, int32_t queueCapacity);
 /** @brief Initializes a queue object using the provided buffer. */
 ALGODEF AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buffer, size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoQueue was created. */
+ALGODEF AlgoError algoQueueGetBufferSize(const AlgoQueue queue, size_t *outBufferSize);
 /** @brief Inserts an element into the queue. */
 ALGODEF AlgoError algoQueueInsert(AlgoQueue queue, const AlgoData elem);
 /** @brief Removes an element from the queue. */
@@ -224,18 +230,20 @@ ALGODEF AlgoError algoHeapComputeBufferSize(size_t *outBufferSize, int32_t heapC
 /** @brief Initializes a heap object using the provided buffer. */
 ALGODEF AlgoError algoHeapCreate(AlgoHeap *heap, int32_t heapCapacity, AlgoDataCompareFunc keyCompare,
 	void *buffer, size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoHeap was created. */
+ALGODEF AlgoError algoHeapGetBufferSize(const AlgoHeap heap, size_t *outBufferSize);
 /** @brief Inserts an element into the heap, with the specified key. */
 ALGODEF AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data);
 /** @brief Inspects the "top" element, but does not remove it from the heap. */
-ALGODEF AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
+ALGODEF AlgoError algoHeapPeek(const AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
 /** @brief Removes the "top" element from the heap. */
 ALGODEF AlgoError algoHeapPop(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData);
 /** @brief Debugging function to validate heap consistency. */
 ALGODEF AlgoError algoHeapValidate(const AlgoHeap heap);
 /** @brief Retrieves the maximum number of elements that can be stored concurrently in the heap. */
-ALGODEF AlgoError algoHeapGetCapacity(AlgoHeap heap, int32_t *outCapacity);
+ALGODEF AlgoError algoHeapGetCapacity(const AlgoHeap heap, int32_t *outCapacity);
 /** @brief Retrieves the number of elements currently stored in the heap. */
-ALGODEF AlgoError algoHeapGetCurrentSize(AlgoHeap heap, int32_t *outSize);
+ALGODEF AlgoError algoHeapGetCurrentSize(const AlgoHeap heap, int32_t *outSize);
 
 /**
  * Implements a generic graph structure.
@@ -254,6 +262,8 @@ ALGODEF AlgoError algoGraphComputeBufferSize(size_t *outBufferSize, int32_t vert
 /** @brief Initializes a graph object using the provided buffer. */
 ALGODEF AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t edgeCapacity,
 	const AlgoGraphEdgeMode edgeMode, void *buffer, size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoGraph was created. */
+ALGODEF AlgoError algoGraphGetBufferSize(const AlgoGraph graph, size_t *outBufferSize);
 /** @brief Debugging function to validate graph consistency. */
 ALGODEF AlgoError algoGraphValidate(const AlgoGraph graph);
 /** @brief Retrieves the current number of vertices in a graph. */
@@ -287,13 +297,15 @@ ALGODEF AlgoError algoGraphGetVertexEdges(const AlgoGraph graph, int32_t srcVert
 /** @brief Retrieve a vertex's optional user data field. */
 ALGODEF AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData *outValue);
 /** @brief Retrieve a vertex's optional user data field. */
-ALGODEF AlgoError algoGraphSetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData value);
+ALGODEF AlgoError algoGraphSetVertexData(AlgoGraph graph, int32_t vertexId, AlgoData value);
 
 typedef struct AlgoGraphBfsStateImpl *AlgoGraphBfsState;
 /** @brief Compute the required buffer size to perform a breadth-first search on a graph.
            This only includes the space required for temporary storage during the search, not the search results themselves. */
 ALGODEF AlgoError algoGraphBfsStateComputeBufferSize(size_t *outBufferSize, const AlgoGraph graph);
 ALGODEF AlgoError algoGraphBfsStateCreate(AlgoGraphBfsState *outState, const AlgoGraph graph, void *buffer, size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoGraphBfsState was created. */
+ALGODEF AlgoError algoGraphBfsStateGetBufferSize(const AlgoGraphBfsState bfsState, size_t *outBufferSize);
 ALGODEF AlgoError algoGraphBfsStateIsVertexDiscovered(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsDiscovered);
 ALGODEF AlgoError algoGraphBfsStateIsVertexProcessed(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsProcessed);
 ALGODEF AlgoError algoGraphBfsStateGetVertexParent(const AlgoGraphBfsState bfsState, int32_t vertexId, int32_t *outParentVertexId);
@@ -324,6 +336,8 @@ typedef struct AlgoGraphDfsStateImpl *AlgoGraphDfsState;
            This only includes the space required for temporary storage during the search, not the search results themselves. */
 ALGODEF AlgoError algoGraphDfsStateComputeBufferSize(size_t *outBufferSize, const AlgoGraph graph);
 ALGODEF AlgoError algoGraphDfsStateCreate(AlgoGraphDfsState *outState, const AlgoGraph graph, void *buffer, size_t bufferSize);
+/** @brief Retrieves the size of the buffer passed when an AlgoGraphDfsState was created. */
+ALGODEF AlgoError algoGraphDfsStateGetBufferSize(const AlgoGraphDfsState dfsState, size_t *outBufferSize);
 ALGODEF AlgoError algoGraphDfsStateIsVertexDiscovered(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsDiscovered);
 ALGODEF AlgoError algoGraphDfsStateIsVertexProcessed(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsProcessed);
 ALGODEF AlgoError algoGraphDfsStateGetVertexParent(const AlgoGraphDfsState dfsState, int32_t vertexId, int32_t *outParentVertexId);
@@ -390,10 +404,12 @@ ALGODEF AlgoError algoGraphTopoSort(const AlgoGraph graph, int32_t outSortedVert
 
 typedef struct AlgoAllocPoolImpl
 {
-	uint8_t *pool;
+	const void *thisBuffer;
+	size_t thisBufferSize;
 	int32_t elementSize; /* must be >= 4 */
 	int32_t elementCount; /* must be > 0 */
 	int32_t headIndex; /* if -1, pool is empty */
+	uint8_t *pool;
 } AlgoAllocPoolImpl;
 
 AlgoError algoAllocPoolComputeBufferSize(size_t *outBufferSize, const int32_t elementSize, const int32_t elementCount)
@@ -440,6 +456,8 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoAllocPoolComputeBufferSize() is out of date */
 
+	(*outAllocPool)->thisBuffer = buffer;
+	(*outAllocPool)->thisBufferSize = bufferSize;
 	(*outAllocPool)->elementSize = elementSize;
 	(*outAllocPool)->elementCount = elementCount;
 	(*outAllocPool)->headIndex = 0;
@@ -456,6 +474,17 @@ AlgoError algoAllocPoolCreate(AlgoAllocPool *outAllocPool, const int32_t element
 		ALGO_ASSERT(elem + elementSize == end);
 		ALGO_UNUSED(end);
 	}
+	return kAlgoErrorNone;
+}
+
+AlgoError algoAllocPoolGetBufferSize(const AlgoAllocPool allocPool, size_t *outBufferSize)
+{
+	if (NULL == allocPool ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = allocPool->thisBufferSize;
 	return kAlgoErrorNone;
 }
 
@@ -493,7 +522,7 @@ AlgoError algoAllocPoolFree(AlgoAllocPool allocPool, void *p)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoAllocPoolGetElementSize(AlgoAllocPool allocPool, int32_t *outElementSize)
+AlgoError algoAllocPoolGetElementSize(const AlgoAllocPool allocPool, int32_t *outElementSize)
 {
 	if (NULL == allocPool ||
 		NULL == outElementSize)
@@ -511,6 +540,8 @@ AlgoError algoAllocPoolGetElementSize(AlgoAllocPool allocPool, int32_t *outEleme
 
 typedef struct AlgoStackImpl
 {
+	const void *thisBuffer;
+	size_t thisBufferSize;
 	int32_t capacity; /* Outside view of how many elements can be stored in the stack. Size of the nodes[] array. */
 	int32_t top; /* index of next empty element in the stack. top=0 -> empty stack. top=capacity -> full */
 	AlgoData *nodes;
@@ -566,10 +597,23 @@ AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buff
 	bufferNext += stackCapacity * sizeof(AlgoData);
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoStackComputeBufferSize() is out of date. */
+	(*outStack)->thisBuffer = buffer;
+	(*outStack)->thisBufferSize = bufferSize;
 	(*outStack)->capacity = stackCapacity;
 	(*outStack)->top = 0;
 	(*outStack)->nodes = nodes;
 
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackGetBufferSize(const AlgoStack stack, size_t *outBufferSize)
+{
+	if (NULL == stack ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = stack->thisBufferSize;
 	return kAlgoErrorNone;
 }
 
@@ -629,11 +673,13 @@ AlgoError algoStackGetCurrentSize(const AlgoStack stack, int32_t *outSize)
 
 typedef struct AlgoQueueImpl
 {
-	AlgoData *nodes;
+	const void *thisBuffer;
+	size_t thisBufferSize;
 	int32_t nodeCount; /* Actual length of the nodes[] array. */
 	int32_t capacity; /* Outside view of how many elements can be stored in the queue. */
 	int32_t head; /* index of the next element to remove (if the queue isn't empty) */
 	int32_t tail; /* index of the first empty element past the end of the queue. */
+	AlgoData *nodes;
 } AlgoQueueImpl;
 
 /* We never let the nodes array fill up completely.
@@ -686,6 +732,8 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 	*outQueue = (AlgoQueueImpl*)bufferNext;
 	bufferNext += sizeof(AlgoQueueImpl);
 
+	(*outQueue)->thisBuffer = buffer;
+	(*outQueue)->thisBufferSize = bufferSize;
 	(*outQueue)->capacity = queueCapacity;
 	(*outQueue)->nodeCount = queueCapacity+1; /* tail is always an empty node. */
 	(*outQueue)->nodes = (AlgoData*)bufferNext;
@@ -693,6 +741,17 @@ AlgoError algoQueueCreate(AlgoQueue *outQueue, int32_t queueCapacity, void *buff
 	(*outQueue)->head = 0;
 	(*outQueue)->tail = 0;
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoQueueComputeBufferSize() is out of date. */
+	return kAlgoErrorNone;
+}
+
+AlgoError algoQueueGetBufferSize(const AlgoQueue queue, size_t *outBufferSize)
+{
+	if (NULL == queue ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = queue->thisBufferSize;
 	return kAlgoErrorNone;
 }
 
@@ -760,10 +819,12 @@ typedef struct AlgoHeapNode
 
 typedef struct AlgoHeapImpl
 {
-	AlgoHeapNode *nodes;
+	const void *thisBuffer;
+	size_t thisBufferSize;
 	AlgoDataCompareFunc keyCompare;
 	int32_t capacity;
 	int32_t nextEmpty; /* 1-based; N's kids = 2*N and 2*N+1; N's parent = N/2 */
+	AlgoHeapNode *nodes;
 } AlgoHeapImpl;
 
 /* Internal utilities */
@@ -846,6 +907,8 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoDataCompar
 
 	*outHeap = (AlgoHeapImpl*)bufferNext;
 	bufferNext += sizeof(AlgoHeapImpl);
+	(*outHeap)->thisBuffer = buffer;
+	(*outHeap)->thisBufferSize = bufferSize;
 	(*outHeap)->nodes = (AlgoHeapNode*)bufferNext;
 	bufferNext += (heapCapacity+kAlgoHeapRootIndex) * sizeof(AlgoHeapNode);
 	(*outHeap)->keyCompare = keyCompare;
@@ -855,7 +918,18 @@ AlgoError algoHeapCreate(AlgoHeap *outHeap, int32_t heapCapacity, AlgoDataCompar
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapGetCurrentSize(AlgoHeap heap, int32_t *outSize)
+AlgoError algoHeapGetBufferSize(const AlgoHeap heap, size_t *outBufferSize)
+{
+	if (NULL == heap ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = heap->thisBufferSize;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoHeapGetCurrentSize(const AlgoHeap heap, int32_t *outSize)
 {
 	if (NULL == heap ||
 		NULL == outSize)
@@ -866,7 +940,7 @@ AlgoError algoHeapGetCurrentSize(AlgoHeap heap, int32_t *outSize)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapGetCapacity(AlgoHeap heap, int32_t *outCapacity)
+AlgoError algoHeapGetCapacity(const AlgoHeap heap, int32_t *outCapacity)
 {
 	if (NULL == heap ||
 		NULL == outCapacity)
@@ -907,7 +981,7 @@ AlgoError algoHeapInsert(AlgoHeap heap, const AlgoData key, const AlgoData data)
 	return kAlgoErrorNone;
 }
 
-AlgoError algoHeapPeek(AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
+AlgoError algoHeapPeek(const AlgoHeap heap, AlgoData *outTopKey, AlgoData *outTopData)
 {
 	if (NULL == heap)
 	{
@@ -1028,6 +1102,8 @@ typedef struct AlgoGraphEdge
 
 typedef struct AlgoGraphImpl
 {
+	const void *thisBuffer;
+	size_t thisBufferSize;
 	int32_t vertexCapacity;
 	int32_t edgeCapacity;
 	int32_t currentVertexCount; /* 0..vertexCapacity */
@@ -1198,6 +1274,8 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphComputeBufferSize() is out of date. */
 
+	(*outGraph)->thisBuffer = buffer;
+	(*outGraph)->thisBufferSize = bufferSize;
 	(*outGraph)->vertexCapacity = vertexCapacity;
 	(*outGraph)->edgeCapacity   =   edgeCapacity;
 	(*outGraph)->currentVertexCount = 0;
@@ -1205,6 +1283,17 @@ AlgoError algoGraphCreate(AlgoGraph *outGraph, int32_t vertexCapacity, int32_t e
 	(*outGraph)->edgeMode    = edgeMode;
 	(*outGraph)->nextFreeVertexId = 0;
 
+	return kAlgoErrorNone;
+}
+
+AlgoError algoGraphGetBufferSize(const AlgoGraph graph, size_t *outBufferSize)
+{
+	if (NULL == graph ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = graph->thisBufferSize;
 	return kAlgoErrorNone;
 }
 
@@ -1407,7 +1496,7 @@ AlgoError algoGraphGetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoDa
 	*outValue = graph->vertexData[vertexId];
 	return kAlgoErrorNone;
 }
-AlgoError algoGraphSetVertexData(const AlgoGraph graph, int32_t vertexId, AlgoData value)
+AlgoError algoGraphSetVertexData(AlgoGraph graph, int32_t vertexId, AlgoData value)
 {
 	if (NULL == graph ||
 		0 == iGraphIsValidVertexId(graph, vertexId))
@@ -1626,11 +1715,13 @@ ALGO_INTERNAL ALGO_INLINE int32_t iTestBit(const int32_t *bits, size_t capacity,
 
 typedef struct AlgoGraphBfsStateImpl
 {
+	const void *thisBuffer;
+	size_t thisBufferSize;
 	AlgoGraphImpl *graph;
 	int32_t *isVertexDiscovered;
 	int32_t *isVertexProcessed;
 	int32_t *vertexParents;
-	AlgoQueueImpl *vertexQueue;
+	AlgoQueue vertexQueue;
 } AlgoGraphBfsStateImpl;
 AlgoError algoGraphBfsStateComputeBufferSize(size_t *outBufferSize, const AlgoGraph graph)
 {
@@ -1703,6 +1794,8 @@ AlgoError algoGraphBfsStateCreate(AlgoGraphBfsState *outState, const AlgoGraph g
 	bufferNext += queueSize;
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphBfsStateComputeBufferSize() is out of date */
+	(*outState)->thisBuffer         = buffer;
+(	 *outState)->thisBufferSize     = bufferSize;
 	(*outState)->graph              = graph;
 	(*outState)->isVertexDiscovered = discovered;
 	(*outState)->isVertexProcessed  = processed;
@@ -1717,6 +1810,18 @@ AlgoError algoGraphBfsStateCreate(AlgoGraphBfsState *outState, const AlgoGraph g
 	}
 	return kAlgoErrorNone;
 }
+
+AlgoError algoGraphBfsStateGetBufferSize(const AlgoGraphBfsState bfsState, size_t *outBufferSize)
+{
+	if (NULL == bfsState ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = bfsState->thisBufferSize;
+	return kAlgoErrorNone;
+}
+
 AlgoError algoGraphBfsStateIsVertexDiscovered(const AlgoGraphBfsState bfsState, int32_t vertexId, int *outIsDiscovered)
 {
 	if (NULL == bfsState ||
@@ -1817,6 +1922,9 @@ AlgoError algoGraphBfs(const AlgoGraph graph, AlgoGraphBfsState bfsState, int32_
 
 typedef struct AlgoGraphDfsStateImpl
 {
+	const void *thisBuffer;
+	size_t thisBufferSize;
+	int32_t currentTime;
 	AlgoGraphImpl *graph;
 	int32_t *isVertexDiscovered;
 	int32_t *isVertexProcessed;
@@ -1825,7 +1933,6 @@ typedef struct AlgoGraphDfsStateImpl
 	int32_t *vertexExitTime;
 	AlgoGraphEdge **vertexNextEdge;
 	AlgoStack vertexStack;
-	int32_t currentTime;
 } AlgoGraphDfsStateImpl;
 AlgoError algoGraphDfsStateComputeBufferSize(size_t *outBufferSize, const AlgoGraph graph)
 {
@@ -1901,6 +2008,8 @@ AlgoError algoGraphDfsStateCreate(AlgoGraphDfsState *outState, const AlgoGraph g
 	bufferNext += stackSize;
 
 	ALGO_ASSERT( bufferNext-minBufferSize == buffer ); /* If this fails, algoGraphDfsStateComputeBufferSize() is out of date */
+	(*outState)->thisBuffer         = buffer;
+	(*outState)->thisBufferSize     = bufferSize;
 	(*outState)->graph              = graph;
 	(*outState)->isVertexDiscovered = discovered;
 	(*outState)->isVertexProcessed  = processed;
@@ -1922,6 +2031,18 @@ AlgoError algoGraphDfsStateCreate(AlgoGraphDfsState *outState, const AlgoGraph g
 	ALGO_MEMCPY(vertexNextEdge, graph->vertexEdges, nextEdgeSize); /* TODO: lazily initialize just-in-time? Better for sparse graphs. */
 	return kAlgoErrorNone;
 }
+
+AlgoError algoGraphDfsStateGetBufferSize(const AlgoGraphDfsState dfsState, size_t *outBufferSize)
+{
+	if (NULL == dfsState ||
+		NULL == outBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	*outBufferSize = dfsState->thisBufferSize;
+	return kAlgoErrorNone;
+}
+
 AlgoError algoGraphDfsStateIsVertexDiscovered(const AlgoGraphDfsState dfsState, int32_t vertexId, int *outIsDiscovered)
 {
 	if (NULL == dfsState ||
