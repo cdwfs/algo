@@ -15,10 +15,10 @@ Currently includes:
 - queue (first in, first out)
 - heap / priority queue (log-N insertion, log-N removal of highest-priority element)
 - pool allocator (dynamic memory allocation of fixed-size elements).
+- graph (vertex and edge management, plus flexible breadth- and depth-first searches and topological sorting)
 
 On deck:
 - hash table
-- graph (vertex and edge management, plus flexible breadth-first and depth-first searches)
 
 Key Features / Design Goals
 ---------------------------
