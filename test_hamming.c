@@ -221,7 +221,7 @@ int main(void)
 				maxLength = length;
 		}
 	}
-	stdDeviation = sqrt(stdDeviation / (float)wordHash->binCount);
+	stdDeviation = (float)sqrt(stdDeviation / (float)wordHash->binCount);
 #endif
 
 	// Create graph; add word vertices; build wordId->vertexId lookup table
