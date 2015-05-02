@@ -100,7 +100,7 @@ static HashEntry_Word **hashGetEntryRef_Word(HashTable_Word *table, const char *
 		NULL != *ppEntry;
 		ppEntry = &(*ppEntry)->next)
 	{
-		if (_stricmp(key, (*ppEntry)->key) == 0)
+		if (zomboStrcasecmp(key, (*ppEntry)->key) == 0)
 			return ppEntry;
 	}
 	return NULL;
@@ -161,6 +161,7 @@ static void hashRemoveEntry_Word(HashTable_Word *table, const char *key)
 int main(void)
 {
 	unsigned int randomSeed = 0x54F66659;//(unsigned int)time(NULL);
+	int iBin;
 	printf("Random seed: 0x%08X\n", randomSeed);
 	srand(randomSeed);
 
@@ -204,7 +205,7 @@ int main(void)
 	int maxLength = 0;
 	float meanLength = (float)wordHash->entryCapacity / (float)wordHash->binCount;
 	{
-		int iBin=0;
+		iBin=0;
 		for(iBin=0; iBin<wordHash->binCount; ++iBin)
 		{
 			HashEntry_Word *entry = wordHash->bins[iBin];
@@ -220,7 +221,7 @@ int main(void)
 				maxLength = length;
 		}
 	}
-	stdDeviation = sqrtf(stdDeviation / (float)wordHash->binCount);
+	stdDeviation = sqrt(stdDeviation / (float)wordHash->binCount);
 #endif
 
 	// Create graph; add word vertices; build wordId->vertexId lookup table
@@ -230,7 +231,7 @@ int main(void)
 	void *hamGraphBuffer = malloc(hamGraphBufferSize);
 	AlgoGraph hamGraph;
 	ALGO_VALIDATE( algoGraphCreate(&hamGraph, wordCount, expectedEdgeCount, kAlgoGraphEdgeUndirected, hamGraphBuffer, hamGraphBufferSize) );
-	for(int iBin=0;
+	for(iBin=0;
 		iBin<wordHash->binCount;
 		++iBin)
 	{
@@ -246,7 +247,7 @@ int main(void)
 	int32_t maxWordEdgeCount = 0;
 	char *wordCopy = alloca(kMaxWordLength+1);
 	wordCopy[kMaxWordLength] = 0;
-	for(int iBin=0;
+	for(iBin=0;
 		iBin<wordHash->binCount;
 		++iBin)
 	{
@@ -260,7 +261,7 @@ int main(void)
 				iChar<wordLength;
 				++iChar)
 			{
-				strncpy_s(wordCopy, kMaxWordLength+1, word, wordLength+1);
+				zomboStrncpy(wordCopy, word, wordLength+1);
 				/* Each word only looks at candidates that appear lexically later */
 				for(char iCandidate = word[iChar]+1;
 					iCandidate<='Z';
@@ -310,7 +311,7 @@ int main(void)
 	}
 	fprintf(hamFile, "{\n");
 	int32_t *wordEdges = alloca(maxWordEdgeCount*sizeof(int32_t));
-	for(int iBin=0;
+	for(iBin=0;
 		iBin<wordHash->binCount;
 		++iBin)
 	{
@@ -352,7 +353,7 @@ int main(void)
 	{
 		printf("start: ");
 		char startWord[32] = {0};
-		scanf_s("%31s", startWord, 32);
+		scanf("%31s", startWord);
 		if (strlen(startWord) > kMaxWordLength)
 		{
 			printf("ERROR: Too long! max word length is %d\n\n", kMaxWordLength);
@@ -368,7 +369,7 @@ int main(void)
 
 		printf(" goal: ");
 		char goalWord[32] = {0};
-		scanf_s("%31s", goalWord, 32);
+		scanf("%31s", goalWord);
 		if (strlen(goalWord) > kMaxWordLength)
 		{
 			printf("ERROR: Too long! max word length is %d\n\n", kMaxWordLength);

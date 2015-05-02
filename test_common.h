@@ -10,7 +10,9 @@
 #include <time.h>
 
 #if defined(_MSC_VER)
-#include <crtdbg.h>
+#	include <crtdbg.h>
+#else
+#	include <alloca.h>
 #endif
 
 #if 1

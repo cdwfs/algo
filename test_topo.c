@@ -19,6 +19,7 @@ int main(void)
 		int32_t vertexCount = (rand() % 8192) + 8192;
 		int32_t *vertexIds = malloc(vertexCount*sizeof(int32_t));
 		int32_t *sortedVertexIds = malloc(vertexCount*sizeof(int32_t));
+		int iVert, iEdge;
 		void *graphBuffer = NULL;
 		size_t graphBufferSize = 0;
 		AlgoGraph graph;
@@ -27,7 +28,7 @@ int main(void)
 		graphBuffer = malloc(graphBufferSize);
 		ALGO_VALIDATE( algoGraphCreate(&graph, kVertexCapacity, kEdgeCapacity, kAlgoGraphEdgeDirected, graphBuffer, graphBufferSize) );
 
-		for(int iVert=0; iVert<vertexCount; ++iVert)
+		for(iVert=0; iVert<vertexCount; ++iVert)
 		{
 			ALGO_VALIDATE( algoGraphAddVertex(graph, algoDataFromInt(0xABCD0000 + iVert), vertexIds+iVert) );
 		}
@@ -37,7 +38,7 @@ int main(void)
 
 		GraphEdge *edges = malloc(kEdgeCapacity*sizeof(GraphEdge));
 		size_t edgesEntryCount = 0;
-		for(int iEdge=0; iEdge<vertexCount*kAverageEdgesPerVertex; ++iEdge)
+		for(iEdge=0; iEdge<vertexCount*kAverageEdgesPerVertex; ++iEdge)
 		{
 			int32_t srcVertex = iEdge % vertexCount;
 			if (srcVertex == vertexCount-1)
@@ -69,7 +70,7 @@ int main(void)
 		{
 			vertexToSortedIndex[ sortedVertexIds[iSortedVert] ] = iSortedVert;
 		}
-		for(int iEdge=0; iEdge<edgesEntryCount; ++iEdge)
+		for(iEdge=0; iEdge<edgesEntryCount; ++iEdge)
 		{
 			int32_t sortedIndex0 = vertexToSortedIndex[edges[iEdge].v0];
 			int32_t sortedIndex1 = vertexToSortedIndex[edges[iEdge].v1];

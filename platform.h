@@ -33,6 +33,7 @@ extern "C"
 #	include <windows.h>
 #elif defined(__GNUC__) || defined(__clang__)
 #	include <sys/types.h>
+#	include <ctype.h>
 #	include <pthread.h>
 #	include <time.h>
 #	include <unistd.h>
@@ -42,7 +43,11 @@ extern "C"
 #ifdef _MSC_VER
 #	define ZOMBO_DEBUGBREAK() __debugbreak()
 #elif defined(__GNUC__) || defined(__clang__)
-#	define ZOMBO_DEBUGBREAK() asm("int $3")
+#	if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199409L
+#		define ZOMBO_DEBUGBREAK() asm("int $3")
+#	else
+#		define ZOMBO_DEBUGBREAK() assert(0)
+#	endif
 #else
 #   error Unsupported compiler
 #endif
@@ -182,9 +187,13 @@ ZOMBO_DEF ZOMBO_INLINE uint64_t zomboClockTicks(void)
 	QueryPerformanceCounter((LARGE_INTEGER*)&outTicks);
 	return outTicks;
 #elif defined(__GNUC__) || defined(__clang__)
+#	if defined(_POSIX_TIMERS)
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	clock_gettime(1, &ts);
 	return (uint64_t)ts.tv_nsec + (uint64_t)ts.tv_sec*1000000000ULL;
+#	else
+#error no timer here!
+#	endif
 #else
 #   error Unsupported compiler
 #endif
@@ -255,15 +264,24 @@ ZOMBO_DEF ZOMBO_INLINE FILE *zomboFopen(const char *path, const char *mode)
 // zombo*nprintf()
 #if defined(_MSC_VER)
 #	define zomboSnprintf( str, size, fmt, ...)  _snprintf_s((str), (size), _TRUNCATE, (fmt), ## __VA_ARGS__)
-#	define zomboVsnprintf(str, size, fmt, ap)  _vsnprintf_s((str), (size), _TRUNCATE, (fmt), (ap)
+#	define zomboVsnprintf(str, size, fmt, ap)	_vsnprintf_s((str), (size), _TRUNCATE, (fmt), (ap)
 #	define zomboScanf(format, ...)				scanf_s((format), __VA_ARGS__)
 #else
 #	define zomboSnprintf( str, size, fmt, ...)  snprintf((str), (size), (fmt), ## __VA_ARGS__)
-#	define zomboVsnprintf(str, size, fmt, ap)  vsnprintf((str), (size), (fmt), (ap)
+#	define zomboVsnprintf(str, size, fmt, ap)	vsnprintf((str), (size), (fmt), (ap)
 #	define zomboScanf(format, ...)				scanf((format), __VA_ARGS__)
 #endif
 
-
+// zomboStr*()
+#if defined(_MSC_VER)
+#	define zomboStrcasecmp(s1, s2)				_stricmp( (s1), (s2) )
+#	define zomboStrncasecmp(s1, s2, n)			_strnicmp( (s1), (s2), (n) )
+#	define zomboStrncpy(dest, src, n)			strncpy_s( (dest), (n), (src), (n) )
+#else
+#	define zomboStrcasecmp(s1, s2)				strcasecmp( (s1), (s2) )
+#	define zomboStrncasecmp(s1, s2, n)			strncasecmp( (s1), (s2), (n) )
+#	define zomboStrncpy(dest, src, n)			strncpy( (dest), (src), (n) )
+#endif
 
 #ifdef __cplusplus
 }
