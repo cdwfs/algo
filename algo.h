@@ -5,7 +5,7 @@
  *
  * Do this:
  *    #define ALGO_IMPLEMENTATION
- * before you including file in *one* C/C++ file to create the implementation.
+ * before including this file in *one* C/C++ file to create the implementation.
  *
  * To define all functions as static (to allow multiple inclusions without
  * link errors, do this:
@@ -32,9 +32,9 @@ extern "C"
 
 #ifndef _MSC_VER
 #	ifdef __cplusplus
-#	define ALGO_INLINE inline
-#else
-#	define ALGO_INLINE
+#		define ALGO_INLINE inline
+#	else
+#		define ALGO_INLINE
 #	endif
 #else
 #	define ALGO_INLINE __forceinline
