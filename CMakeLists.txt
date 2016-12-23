@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 
-# Remove MinSizeRel and RelWithDebInfo targets
-set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE )
-
 project(algo)
 
 # Mysterious macro to remove default VS "Source Files" and "Header Files" filters.
