@@ -11,6 +11,79 @@
  * link errors, do this:
  *    #define ALGO_STATIC
  *
+ * GENERAL API GUIDE
+ * -----------------
+ * Error checking:
+ * All functions return an AlgoError code, which will be kAlgoErrorNone (0) on success, or a non-zero value
+ * on failure. Users are urged to define a macro function to check the return value of all algo.h function calls
+ * and handle/report any errors in an application-specific fashion. See https://gist.github.com/cdwfs/070c6496fedf04b4873b
+ * for an example of a suitable error-checking function. For clarity, Error checking will be omitted in the
+ * remainder of this guide.
+ *
+ * Initializing an AlgoFoo object:
+ * The idiom to create an object of type AlgoFoo is:
+ *		size_t fooBufferSize = 0;
+ *		algoFooComputeBufferSize(&fooBufferSize, [foo_args]);
+ *		void *fooBuffer = malloc(fooBufferSize);
+ *		AlgoFoo foo;
+ *		algoFooCreate(&foo, [foo_args], fooBuffer, fooBufferSize);
+ * To reset an existing AlgoFoo object to its default/empty state, just call algoFooCreate() again with the
+ * same arguments.
+ *
+ * Deleting an AlgoFoo object:
+ * Objects will never make any additional allocations, or use any memory beyond the buffer provided when
+ * they were initialized. Therefore, deleting an object is as simple as releasing its memory buffer:
+ *		free(fooBuffer);
+ *
+ * Copying or Relocating an AlgoFoo object:
+ * The AlgoFoo object itself is just a typedef of a pointer to an opaque AlgoFooImpl structure, which is
+ * always stored at the beginning of the object's memory buffer. The object may contain internal pointers
+ * to other regions of the buffer; these pointers will need to be patched if the object's location changes.
+ * This patching is handled by the algoFooRelocate() object, which patches all internal pointers based on
+ * the object's current base pointer. The idiom to copy an existing AlgoFoo object to a new buffer is:
+ *		size_t fooBuffer2Size = 0;
+ *		void *fooBuffer2 = malloc(fooBuffer2Size);
+ *		AlgoFoo fooCopy = fooBuffer2;
+ *		memcpy(fooCopy, foo, fooBufferSize);
+ *		algoFooRelocate(fooCopy, fooBuffer2Size);
+ *
+ * Serializing an AlgoFoo object:
+ * Serialization is just a special case of copying. Any AlgoFoo object can be serialized by storing the contents
+ * of its memory buffer, exactly as-is. To deserialize, load the contents into an appropriately-sized buffer,
+ * assign an AlgoFoo object to the buffer's base address, and call algoFooRelocate() to update the internal
+ * pointers accordingly.
+ *
+ * Resizing an AlgoFoo object:
+ * AlgoFoo objects can be resized in-place, if their buffer contains sufficient space. The exact procecure is
+ * different for growing and shrinking an object.
+ *
+ * Increasing the capacity of an AlgoFoo object usually requires more buffer space. The object's contents must
+ * first be copied into the larger buffer, and the object reassigned to the new buffer's base address. See
+ * the section on "Copying or Relocating an AlgoFoo object" for details. Once the object has been successfully
+ * relocated, it can be resized in-place with algoFooResize(). The full idiom is:
+ *		size_t fooBiggerBufferSize = 0;
+ *		algoFooComputeBufferSize(&fooBiggerBufferSize, [foo_larger_args]);
+ *		void *fooBiggerBuffer = malloc(fooBiggerBufferSize);
+ *		AlgoFoo fooBigger = fooBiggerBuffer;
+ *		memcpy(fooBigger, foo, fooBufferSize);
+ *		free(foo);
+ *		algoFooRelocate(fooBigger, fooBiggerBufferSize);
+ *		algoFooResize(fooBigger, [foo_larger_args], fooBiggerBufferSize);
+ *		foo = fooBigger;
+ * Reducing the capacity of an AlgoFoo object involves resizing the object in-place, and then optionally copying
+ * the object into a new (smaller) buffer and fixing up its internal pointers.
+ *		size_t fooSmallerBufferSize = 0;
+ *		algoFooComputeBufferSize(&fooSmallerBufferSize, [foo_smaller_args]);
+ *		void *fooSmallerBuffer = malloc(fooSmallerBufferSize);
+ *		AlgoFoo fooSmaller = fooSmallerBufer;
+ *		algoFooResize(foo, [foo_smaller_args], fooSmallerBufferSize);
+ *		memcpy(fooSmaller, foo, fooSmallerBufferSize);
+ *		free(foo);
+ *		algoFooRelocate(fooSmaller, fooSmallerBufferSize);
+ *		foo = fooSmaller;
+ * The TL;DR version:
+ *		-	When growing an object, relocate before resizing
+ *		-	When shrinking an object, resize before relocating.
  */
 
 #ifndef ALGO_INCLUDE_H
@@ -50,7 +123,9 @@ extern "C"
 #ifndef ALGO_ASSERT
 #	define ALGO_ASSERT assert
 #endif
-
+#ifndef ALGO_MEMMOVE
+#	define ALGO_MEMMOVE memmove
+#endif
 
 /** @brief Error code returned by algo functions. */
 typedef enum AlgoError
@@ -126,6 +201,10 @@ ALGODEF AlgoError algoStackComputeBufferSize(size_t *outBufferSize, int32_t stac
 ALGODEF AlgoError algoStackCreate(AlgoStack *outStack, int32_t stackCapacity, void *buffer, size_t bufferSize);
 /** @brief Retrieves the size of the buffer passed when an AlgoStack was created. */
 ALGODEF AlgoError algoStackGetBufferSize(const AlgoStack stack, size_t *outBufferSize);
+/** @brief Move a stack to a new location in memory, preserving its capacity and contents. */
+ALGODEF AlgoError algoStackRelocate(AlgoStack *outNewStack, const AlgoStack oldStack, void *newBuffer, size_t newBufferSize);
+/** @brief Change a stack's capacity in-place. */
+ALGODEF AlgoError algoStackResize(AlgoStack stack, int32_t newStackCapacity, size_t bufferSize);
 /** @brief Pushes an element to the stack. */
 ALGODEF AlgoError algoStackPush(AlgoStack stack, const AlgoData elem);
 /** @brief Pops an element from the stack. */
@@ -398,6 +477,9 @@ ALGODEF AlgoError algoGraphTopoSort(const AlgoGraph graph, int32_t outSortedVert
 #define ALGO_UNUSED(x) (void)(x)
 #define ALGO_INTERNAL static
 
+#define ALGO_MIN(x,y) ((x)<(y) ? (x) : (y))
+#define ALGO_MAX(x,y) ((x)>(y) ? (x) : (y))
+
 /******************************************
  * AlgoAllocPool
  ******************************************/
@@ -614,6 +696,86 @@ AlgoError algoStackGetBufferSize(const AlgoStack stack, size_t *outBufferSize)
 		return kAlgoErrorInvalidArgument;
 	}
 	*outBufferSize = stack->thisBufferSize;
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackRelocate(AlgoStack *outNewStack, const AlgoStack oldStack, void *newBuffer, size_t newBufferSize)
+{
+	if (NULL == outNewStack ||
+		NULL == oldStack ||
+		NULL == newBuffer)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	size_t minBufferSize = 0;
+	AlgoError err;
+	err = algoStackComputeBufferSize(&minBufferSize, oldStack->capacity);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	if (newBufferSize < minBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	if (newBuffer == oldStack->thisBuffer)
+	{
+		(*outNewStack) = oldStack;
+		(*outNewStack)->thisBufferSize = newBufferSize;
+		return kAlgoErrorNone;
+	}
+
+	const void *oldBuffer = oldStack->thisBuffer;
+	const void *oldBufferEnd = (void*)( (intptr_t)oldBuffer + oldStack->thisBufferSize );
+	const void *newBufferEnd = (void*)( (intptr_t)newBuffer + newBufferSize );
+	if (oldBuffer <= newBufferEnd && newBuffer <= oldBufferEnd)
+	{
+		ALGO_MEMMOVE(newBuffer, oldBuffer, minBufferSize);
+	}
+	else
+	{
+		ALGO_MEMCPY(newBuffer, oldBuffer, minBufferSize);
+	}
+	intptr_t pointerOffset = (intptr_t)newBuffer - (intptr_t)oldBuffer;
+	(*outNewStack) = newBuffer;
+	(*outNewStack)->thisBuffer = newBuffer;
+	(*outNewStack)->thisBufferSize = newBufferSize;
+	(*outNewStack)->nodes = (AlgoData*)( (intptr_t)(*outNewStack)->nodes + pointerOffset );
+	return kAlgoErrorNone;
+}
+
+AlgoError algoStackResize(AlgoStack stack, int32_t newStackCapacity, size_t bufferSize)
+{
+	if (NULL == stack ||
+		newStackCapacity < 1)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+	size_t minBufferSize = 0;
+	AlgoError err;
+	err = algoStackComputeBufferSize(&minBufferSize, newStackCapacity);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	if (bufferSize < minBufferSize)
+	{
+		return kAlgoErrorInvalidArgument;
+	}
+
+	int32_t currentElemCount = 0;
+	err = algoStackGetCurrentSize(stack, &currentElemCount);
+	if (err != kAlgoErrorNone)
+	{
+		return err;
+	}
+	if (currentElemCount > newStackCapacity)
+	{
+		return kAlgoErrorOperationFailed;
+	}
+
+	stack->capacity = newStackCapacity;
 	return kAlgoErrorNone;
 }
 

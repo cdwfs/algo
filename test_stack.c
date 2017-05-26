@@ -53,7 +53,7 @@ int main(void)
 	{
 		nextToAdd = 0;
 		nextToCheck = 0;
-		kStackCapacity = 1 + (rand() % 1024);
+		kStackCapacity = 2 + (rand() % 1024);
 		printf("Testing AlgoStack (capacity: %d)\n", kStackCapacity);
 
 		nextToCheck = kStackCapacity-1;
@@ -86,6 +86,44 @@ int main(void)
 
 		/* Make sure we can't add elements to a full stack. */
 		{
+			AlgoError err;
+			ALGO_VALIDATE( algoStackGetCurrentSize(stack, &currentSize) );
+			ZOMBO_ASSERT(currentSize == kStackCapacity, "full stack has currentSize=%d, capacity=%d", currentSize, kStackCapacity);
+			err = algoStackPush(stack, algoDataFromInt(0));
+			ZOMBO_ASSERT(err == kAlgoErrorOperationFailed, "ERROR: algoStackPush() on a full stack returned %d (expected %d)\n",
+						 err, kAlgoErrorOperationFailed);
+		}
+
+		/* Grow the stack */
+		{
+			kStackCapacity += 1;
+			size_t newStackBufferSize = 0;
+			ALGO_VALIDATE( algoStackComputeBufferSize(&newStackBufferSize, kStackCapacity) );
+			void *newStackBuffer = malloc(newStackBufferSize);
+			ALGO_VALIDATE( algoStackRelocate(&stack, stack, newStackBuffer, newStackBufferSize) );
+			ALGO_VALIDATE( algoStackResize(stack, kStackCapacity, newStackBufferSize) );
+			if (NULL != newStackBuffer)
+			{
+				free(stackBuffer);
+				stackBuffer = newStackBuffer;
+			}
+
+			AlgoData elem = algoDataFromInt(1337);
+			ALGO_VALIDATE( algoStackPush(stack, elem) );
+		}
+
+		/* Shrink the stack */
+		{
+			AlgoData elem = algoDataFromInt(-1);
+			ALGO_VALIDATE( algoStackPop(stack, &elem) );
+			ZOMBO_ASSERT(elem.asInt == 1337, "Unexpected value at the top of the the stack");
+
+			kStackCapacity -= 1;
+			size_t newStackBufferSize = 0;
+			ALGO_VALIDATE( algoStackComputeBufferSize(&newStackBufferSize, kStackCapacity) );
+			ALGO_VALIDATE( algoStackResize(stack, kStackCapacity, stackBufferSize) );
+			ALGO_VALIDATE( algoStackRelocate(&stack, stack, stackBuffer, newStackBufferSize) );
+
 			AlgoError err;
 			ALGO_VALIDATE( algoStackGetCurrentSize(stack, &currentSize) );
 			ZOMBO_ASSERT(currentSize == kStackCapacity, "full stack has currentSize=%d, capacity=%d", currentSize, kStackCapacity);
